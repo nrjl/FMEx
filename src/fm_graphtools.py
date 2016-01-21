@@ -44,7 +44,32 @@ def polynomial_cost_modifier(graph, cx, cy, r, delta):
                 kd = delta*( max(0,(1-dd))**(j+1)*((j+1)*dd + 1) )
                 if kd != 0: cost_dict[(x,y)] = kd
     return cost_dict
-
+    
+class polynomial_precompute_cost_modifier:
+    def __init__(self, graph, r, min_val=0):
+        self.graph = graph
+        self.r = r
+        self.min_val = min_val
+        q = 1
+        D = 2
+        self.j = D/2+q+1
+        self.build_dict()
+        
+    def build_dict(self):
+        self.cost_dict={}
+        for x in range(-self.r, self.r):
+            for y in range(-self.r, self.r):
+                dd = min(1, math.sqrt(x**2 + y**2)/self.r)
+                kd = 1.0*( max(0,(1-dd))**(self.j+1)*((self.j+1)*dd + 1) )
+                if kd > self.min_val: self.cost_dict[(x,y)] = kd
+                
+    def calc_cost(self, cx, cy, delta):
+        out_cost = {(x+cx,y+cy):delta*self.cost_dict[(x,y)] for (x,y) in self.cost_dict 
+            if x+cx >= self.graph.left and x+cx < self.graph.right and
+                y+cy >= self.graph.bottom and y+cy < self.graph.top and
+                (x+cx,y+cy) not in self.graph.obstacles}
+        return out_cost
+        
 class poly_cost:
     def __init__(self, graph, r):
         q = 1; D = 2
@@ -83,19 +108,27 @@ class Graph:
         return self.edges[id]
 
 class CostmapGrid:
-    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[]):
+    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[], bl_corner=(0,0)):
         self.width = width
         self.height = height
         self.obstacles = obstacles         
         self.cost_fun = cost_fun
         self.delta_costs = {}
+        self.bl_corner = bl_corner
+        self.set_bounds()
+        
+    def set_bounds(self):
+        self.left = self.bl_corner[0]
+        self.right = self.bl_corner[0] + self.width
+        self.bottom = self.bl_corner[1]
+        self.top = self.bl_corner[1] + self.height
         
     def copy(self):
-        return CostmapGrid(self.width, self.height, self.cost_fun, self.obstacles)
+        return CostmapGrid(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, bl_corner=self.bl_corner)
         
     def in_bounds(self, id):
         (x, y) = id
-        return 0 <= x < self.width and 0 <= y < self.height
+        return self.left <= x < self.right and self.bottom <= y < self.top
    
     def passable(self, id):
         return id not in self.obstacles
@@ -170,22 +203,24 @@ class PriorityQueue(object):
             heapq.heappop(self.elements)
 
 class CostmapGridFixedObs(CostmapGrid):
-    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[]):
+    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[], bl_corner=(0,0)):
         self.width = width
         self.height = height
         self.obstacles = obstacles         
         self.cost_fun = cost_fun
         self.delta_costs = {}
+        self.bl_corner=bl_corner
+        self.set_bounds()
         self.rebuild_neighbours()
              
     def copy(self):
-        return CostmapGridFixedObs(self.width, self.height, self.cost_fun, self.obstacles)
+        return CostmapGridFixedObs(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, bl_corner=self.bl_corner)
    
     def passable(self, id):
         return id not in self.obstacles
    
     def neighbours(self, id):
-        results = [((a,b), self.node_cost((a,b))) for (a,b) in self.fixed_neighbours[id]]
+        results = [(node, self.node_cost(node)) for node in self.fixed_neighbours[id]]
         return results
         
     def update_obstacles(self, new_obstacles):
@@ -196,8 +231,8 @@ class CostmapGridFixedObs(CostmapGrid):
         
     def rebuild_neighbours(self):
         self.fixed_neighbours = {}
-        for x in range(self.width):
-            for y in range(self.height):
+        for x in range(self.left, self.right):
+            for y in range(self.bottom, self.top):
                 results = [(x+1, y), (x, y-1), (x-1, y), (x, y+1)]
                 results = filter(self.in_bounds, results)
                 results = filter(self.passable, results)
