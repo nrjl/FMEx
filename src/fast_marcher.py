@@ -23,7 +23,8 @@ def bFM_reset(FM_new, FM_old, graph):
     FM_new.best_midfacenode = copy.copy(FM_old.best_midfacenode)
     FM_new.best_cost = copy.copy(FM_old.best_cost)
     FM_new.global_parent = copy.copy(FM_old.global_parent)
-    
+
+            
 class FastMarcher:
     adjacency_list = {(-1,0): [(0,1), (0,-1)], (1,0): [(0,1), (0,-1)], 
         (0,-1): [(1,0), (-1,0)], (0,1):  [(1,0), (-1,0)]}
@@ -127,24 +128,28 @@ class FastMarcher:
         self.search_nodes = nodes_popped
         # return self.cost_to_come, self.parent_list
       
-    def pull_path(self):
-        self.path = self.path_source_to_point(self.start_node, self.end_node)
+    def pull_path(self, end_node=None):
+        if end_node == None:
+            end_node = self.end_node
+        self.path = self.path_source_to_point(self.start_node, end_node)
 
-    def path_source_to_point(self, source, target):
+    def path_source_to_point(self, source, target, cost_to_come=None):
+        if cost_to_come==None:
+            cost_to_come=self.cost_to_come
         path = [target]
         current_node = target
         while math.sqrt((current_node[0]-source[0])**2 + 
         (current_node[1]-source[1])**2) > 2*self.step_dist:
-            if current_node in self.cost_to_come:
-                grad = self.local_gradient(current_node)
+            if current_node in cost_to_come:
+                grad = self.local_gradient(current_node, cost_to_come)
             else:
                 grad = np.array([0.0,0.0])
                 weight = 0
-                node_list = self.find_nearest_nodes(current_node)
+                node_list = self.find_nearest_nodes(current_node, cost_to_come)
                 for row in node_list:
                     c_node = (row[0], row[1])
                     l_weight = 1/row[2]
-                    grad += self.local_gradient(c_node)*l_weight
+                    grad += self.local_gradient(c_node, cost_to_come)*l_weight
                     weight += l_weight
                 grad = grad/weight
             
@@ -158,7 +163,7 @@ class FastMarcher:
         path.reverse()
         return path        
     
-    def find_nearest_nodes(self, node):
+    def find_nearest_nodes(self, node, cost_to_come):
         dx = node[0]%1
         dy = node[1]%1
         fx = int(node[0])
@@ -167,22 +172,23 @@ class FastMarcher:
         square = [[0,0], [0,1], [1,1], [1,0]]
         for offset in square:
             c_node = (fx+offset[0], fy+offset[1])
-            if c_node in self.cost_to_come:
+            if c_node in cost_to_come:
                 node_list.append([c_node[0], c_node[1], math.sqrt((dx+offset[0]*(1-2*dx))**2 + (dy+offset[1]*(1-2*dy))**2)])
         return node_list
         
-    def local_gradient(self, current_node):
+    def local_gradient(self, current_node, cost_to_come):
+
         (x, y) = current_node
-        current_cost = self.cost_to_come[current_node]
+        current_cost = cost_to_come[current_node]
         (dx,dy) = (0,0)
-        if (x+1,y) in self.cost_to_come and self.cost_to_come[(x+1,y)] < current_cost:
-            dx = current_cost - self.cost_to_come[(x+1,y)]
-        if (x-1,y) in self.cost_to_come and current_cost - dx > self.cost_to_come[(x-1,y)]:
-            dx = self.cost_to_come[(x-1,y)] - current_cost
-        if (x,y+1) in self.cost_to_come and self.cost_to_come[(x,y+1)] < current_cost:
-            dy = current_cost - self.cost_to_come[(x,y+1)]
-        if (x,y-1) in self.cost_to_come and current_cost - dy > self.cost_to_come[(x,y-1)]:
-            dy = self.cost_to_come[(x,y-1)] - current_cost
+        if (x+1,y) in cost_to_come and cost_to_come[(x+1,y)] < current_cost:
+            dx = current_cost - cost_to_come[(x+1,y)]
+        if (x-1,y) in cost_to_come and current_cost - dx > cost_to_come[(x-1,y)]:
+            dx = cost_to_come[(x-1,y)] - current_cost
+        if (x,y+1) in cost_to_come and cost_to_come[(x,y+1)] < current_cost:
+            dy = current_cost - cost_to_come[(x,y+1)]
+        if (x,y-1) in cost_to_come and current_cost - dy > cost_to_come[(x,y-1)]:
+            dy = cost_to_come[(x,y-1)] - current_cost
         return np.array([dx, dy])
 
     def create_child_list(self):
@@ -302,6 +308,9 @@ class FastMarcher:
             if killnode in self.cost_to_come: del self.cost_to_come[killnode]
             # if killnode in new_parent_list: del new_parent_list[killnode]
         
+        # If everything was deleted, push start node back onto queue
+        if not self.cost_to_come:
+            self.frontier.push(self.start_node, 0+self.heuristic_fun(self.start_node, self.end_node))
         self.continue_FM_search()
             
     def make_video(self, leading_frame=[], trailing_frame=[]):
@@ -456,19 +465,19 @@ class BiFastMarcher(FastMarcher):
         self.corridor = c1
         self.corridor_interface = ci1
             
-    def local_gradient(self, current_node):
+    def local_gradient(self, current_node, cost_to_come):
         (x, y) = current_node
-        current_cost = self.cost_to_come[current_node]
+        current_cost = cost_to_come[current_node]
         g_parent = self.global_parent[current_node]
         (dx,dy) = (0,0)
-        if (x+1,y) in self.cost_to_come and self.global_parent[(x+1,y)] == g_parent and self.cost_to_come[(x+1,y)] < current_cost:
-            dx = current_cost - self.cost_to_come[(x+1,y)]
-        if (x-1,y) in self.cost_to_come and self.global_parent[(x-1,y)] == g_parent and current_cost - dx > self.cost_to_come[(x-1,y)]:
-            dx = self.cost_to_come[(x-1,y)] - current_cost
-        if (x,y+1) in self.cost_to_come and self.global_parent[(x,y+1)] == g_parent and self.cost_to_come[(x,y+1)] < current_cost:
-            dy = current_cost - self.cost_to_come[(x,y+1)]
-        if (x,y-1) in self.cost_to_come and self.global_parent[(x,y-1)] == g_parent and current_cost - dy > self.cost_to_come[(x,y-1)]:
-            dy = self.cost_to_come[(x,y-1)] - current_cost
+        if (x+1,y) in cost_to_come and self.global_parent[(x+1,y)] == g_parent and cost_to_come[(x+1,y)] < current_cost:
+            dx = current_cost - cost_to_come[(x+1,y)]
+        if (x-1,y) in cost_to_come and self.global_parent[(x-1,y)] == g_parent and current_cost - dx > cost_to_come[(x-1,y)]:
+            dx = cost_to_come[(x-1,y)] - current_cost
+        if (x,y+1) in cost_to_come and self.global_parent[(x,y+1)] == g_parent and cost_to_come[(x,y+1)] < current_cost:
+            dy = current_cost - cost_to_come[(x,y+1)]
+        if (x,y-1) in cost_to_come and self.global_parent[(x,y-1)] == g_parent and current_cost - dy > cost_to_come[(x,y-1)]:
+            dy = cost_to_come[(x,y-1)] - current_cost
         return np.array([dx, dy])
         
     def update(self, new_cost):
@@ -565,24 +574,28 @@ class FullBiFastMarcher:
     def search(self):
         self.FastMarcherSG.search()
         self.FastMarcherGS.search()
+        self.min_path_cost = self.FastMarcherSG.cost_to_come[self.end_node]
         self.path_cost = copy.copy(self.FastMarcherSG.cost_to_come)
         for node in self.path_cost:
             self.path_cost[node] += self.FastMarcherGS.cost_to_come[node]
-        self.FastMarcherGS.set_goal(self.FastMarcherSG.start_node)
-        self.FastMarcherSG.set_goal(self.FastMarcherGS.start_node)
-        self.min_path_cost = self.FastMarcherSG.cost_to_come[self.end_node]
-            
+            self.min_path_cost = min(self.min_path_cost,self.path_cost[node])
+        #self.FastMarcherGS.set_goal(self.FastMarcherSG.start_node)
+        #self.FastMarcherSG.set_goal(self.FastMarcherGS.start_node)
+        self.full_search_nodes = self.FastMarcherSG.search_nodes+self.FastMarcherGS.search_nodes
+
     def pull_path(self):
-        self.FastMarcherSG.pull_path()
+        self.FastMarcherSG.pull_path(self.end_node)
         self.path = self.FastMarcherSG.path
 
     def find_corridor(self):
         self.FastMarcherSG.find_corridor()
         self.corridor = self.FastMarcherSG.corridor
                 
-    def update(self, new_cost, recalc_path = 0):
+    def update(self, new_cost, recalc_path = False):
         # New cost should be added as a dictionary, with elements  [(node) : delta_cost]
-        midnode = (-1,-1)
+        self.search_nodes = 0
+        self.downwind_nodes=len(new_cost)
+        midnode = (None,None)
         
         # Strip zero cost nodes and obstacle nodes
         new_cost = {node:new_cost[node] for node in new_cost if ((new_cost[node] != 0) and (node in self.path_cost))}
@@ -683,7 +696,7 @@ class FullBiFastMarcher:
         self.search_nodes = nodes_popped
         
         if recalc_path:
-            if midnode != (-1,-1):
+            if midnode != (None,None):
                 tempctc = copy.copy(self.FastMarcherSG.cost_to_come)
                 self.FastMarcherSG.cost_to_come = cost_to_come
                 path1 = self.FastMarcherSG.path_source_to_point(self.start_node, midnode)
@@ -700,6 +713,7 @@ class FullBiFastMarcher:
         return 
 
     def kill_downwind(self, start_nodes, cost_to_come, min_ctg):
+        self.downwind_nodes = 0
         interface_list = set([])
         downwind_list = set([])
         search_list = fm_graphtools.PriorityQueue([])
@@ -723,12 +737,12 @@ class FullBiFastMarcher:
                     interface_list.update( {node} )
             try:
                 c_cost, c_node = search_list.pop()
-                self.nodes_popped+=1
+                self.downwind_nodes+=1
             except KeyError:
                 break
         return interface_list
                   
-    def update_new(self, new_cost, recalc_path = 0):
+    def update_new(self, new_cost, recalc_path = False):
         # New cost should be added as a dictionary, with elements  [(node) : delta_cost]
         
         M_s = set()
@@ -789,11 +803,11 @@ class FullBiFastMarcher:
         
     def ReSearch(self, Q, A, P_g, C_b):
         c_n = 0
-        nodes_popped = 0
+        self.search_nodes = 0
         while (Q.count() > 0) and (c_n < C_b/2):
             try:
                 c_n, n = Q.pop()
-                nodes_popped+=1
+                self.search_nodes+=1
             except KeyError:
                 break
                 
@@ -831,17 +845,18 @@ class FullBiFastMarcher:
                 
         if self.image_frames != 0:
             self.image_frames.append(fm_plottools.draw_costmap(self.axes, self.graph, A))
-        print "biFM ReSearch: nodes popped: {0}".format(nodes_popped)
-        self.search_nodes=nodes_popped    
+        print "biFM ReSearch: nodes popped: {0}".format(self.search_nodes)
 
         return C_b
 
-    def update_new2(self, new_cost,loc=None):
+    def update_new2(self, new_cost,loc=None,recalc_path=False):
         # New cost should be added as a dictionary, with elements  [(node) : delta_cost]
-        self.nodes_popped = 0
-
+        self.search_nodes = 0
+        self.downwind_nodes = 0
+        
+        new_cost = {node:new_cost[node] for node in new_cost if (node in self.path_cost)}
         self.graph.clear_delta_costs()
-        self.graph.add_delta_costs(new_cost)
+        self.graph.add_delta_costs(new_cost)        
         
         Q = fm_graphtools.PriorityQueue([])
         Q.clear()
@@ -874,7 +889,7 @@ class FullBiFastMarcher:
         for x_M in M:
             Q.push(x_M, self.FastMarcherSG.cost_to_come[x_M])
                 
-        C_prime = min([A_prime[x] + self.FastMarcherGS.cost_to_come[x] for x in A_prime])
+        C_prime = min([A_prime[x] + self.FastMarcherGS.cost_to_come[x] for x in A_prime if self.FastMarcherGS.cost_to_come[x]])
         C_b = C_prime - min_ctg
 
         if min_cts > C_b:
@@ -885,6 +900,7 @@ class FullBiFastMarcher:
         self.updated_min_path_cost = C_prime                
 
     def ReSearch2(self, frontier, cost_to_come, C, min_ctg,loc=None):
+        self.search_nodes=0
         if self.image_frames != 0:
             self.plot_cost, NULL = min(frontier.elements)
         
@@ -893,7 +909,7 @@ class FullBiFastMarcher:
                 c_priority, c_node = frontier.pop()
             except KeyError:
                 break
-            self.nodes_popped+=1
+            self.search_nodes+=1
             u_A = c_priority
             if u_A > C:
                 if self.image_frames != 0:
@@ -932,8 +948,188 @@ class FullBiFastMarcher:
             tempframe.append(self.axes.plot(loc[0], loc[1], 'wx', mew=2, ms=10)[0])
             tempframe.append(self.axes.plot(loc[0], loc[1], 'wo', mew=1, ms=80, mfc='none', mec='w' )[0])
         return tempframe
-    
 
+    def update_new3(self, new_cost,recalc_path=False,loc=None):
+        # New cost should be added as a dictionary, with elements  [(node) : delta_cost]
+        self.search_nodes = 0
+        self.downwind_nodes = 0
+        
+        new_cost = {node:new_cost[node] for node in new_cost if (node in self.path_cost)}
+        self.graph.clear_delta_costs()
+        self.graph.add_delta_costs(new_cost)        
+        
+        Q = fm_graphtools.PriorityQueue([])
+        Q.clear()
+        
+        if self.image_frames != 0:
+            self.image_frames.append(self.plot_cost_frame(self.FastMarcherSG.cost_to_come,loc))
+        
+        min_cts = self.min_path_cost
+        min_ctg = self.min_path_cost
+                
+        for x_d in new_cost:
+            min_cts = min(self.FastMarcherSG.cost_to_come[x_d], min_cts)
+            min_ctg = min(self.FastMarcherGS.cost_to_come[x_d], min_ctg)
+
+        # Can we break because the shortest possible path is longer than the existing best path?
+        if min_cts + min_ctg > self.min_path_cost:
+            self.updated_min_path_cost = self.min_path_cost
+            if recalc_path:
+                try:
+                    self.updated_path = self.path
+                except AttributeError:
+                    self.pull_path()
+                    self.updated_path = self.path
+            return
+        
+        # Which is the shortest direction to search in (so we have fewest downwind deletions)?
+        if min_cts > min_ctg:
+            A_dir = self.FastMarcherSG
+            B_dir = self.FastMarcherGS
+            A_min = min_cts; B_min = min_ctg
+        else:
+            A_dir = self.FastMarcherGS
+            B_dir = self.FastMarcherSG
+            A_min = min_ctg; B_min = min_cts
+        A_prime = copy.copy(A_dir.cost_to_come)
+        
+        # If cost goes up, kill downwind, if it goes down, just add parents
+        if (new_cost.itervalues().next() > 0):
+            M = self.full_kill_downwind(new_cost.keys(), A_prime, A_dir.child_list)
+            # If the goal node is still valid then no shorter path exists
+            if A_dir.end_node in A_prime:
+                self.updated_min_path_cost = self.min_path_cost
+                if recalc_path:
+                    try:
+                        self.updated_path = self.path
+                    except AttributeError:
+                        self.pull_path()
+                        self.updated_path = self.path
+                return
+            C_prime = () # This just sets a max value, since () > maxfloat
+            for x in A_prime:
+                if B_dir.cost_to_come[x] <= B_min:
+                    Ctemp = A_prime[x] + B_dir.cost_to_come[x]
+                    if Ctemp < C_prime:
+                        C_prime = Ctemp
+                        x_prime = x
+                
+        else:
+            M = set()
+            for x_d in new_cost:
+                for x_p in (y for y in A_dir.parent_list[x_d] if y not in new_cost):
+                    M.update({x_p})
+            C_prime = self.min_path_cost
+            x_prime = A_dir.start_node
+                    
+        if A_dir.start_node in new_cost:
+            print "Start node in cost change, this should really not happen..."
+
+        for x_M in M:
+            Q.push(x_M, A_dir.cost_to_come[x_M])
+        
+        #C_prime = min([A_prime[x] + B_dir.cost_to_come[x] for x in A_prime if B_dir.cost_to_come[x] < B_min])
+        
+        if C_prime == ():
+            C_b = ()
+        else:
+            C_b = C_prime - B_min
+
+        if A_min > C_b:
+            self.updated_min_path_cost = C_prime
+            print "The weird return happened!"
+            return
+            
+        C_prime, x_temp = self.ReSearch3(Q, A_prime, B_dir, C_b, B_min, loc)
+        if x_temp != None:
+            x_prime = x_temp
+        self.updated_min_path_cost = C_prime
+        if recalc_path:
+            if min_cts > min_ctg:
+                self.split_path(A_prime, B_dir.cost_to_come, x_prime)
+            else:
+                self.split_path(B_dir.cost_to_come, A_prime, x_prime)
+
+    def ReSearch3(self, frontier, A_prime, B_dir, C, B_min,loc=None):
+        self.search_nodes=0
+        if self.image_frames != 0:
+            self.plot_cost, NULL = min(frontier.elements)
+        
+        while True:
+            try:
+                c_priority, c_node = frontier.pop()
+            except KeyError:
+                break
+            self.search_nodes+=1
+            u_A = c_priority
+            if u_A > C:
+                # Higher cost than existing best path, return
+                if self.image_frames != 0:
+                    self.image_frames.append(self.plot_cost_frame(A_prime, loc))
+                return C+B_min,None
+            elif B_dir.cost_to_come[c_node] <= B_min:
+                # Found a path that meets oncoming wavefront, return
+                if self.image_frames != 0:
+                    self.image_frames.append(self.plot_cost_frame(A_prime, loc))
+                return u_A + B_dir.cost_to_come[c_node], c_node
+                    
+            A_prime[c_node] = u_A
+            for n_node, tau_k in self.graph.neighbours(c_node):
+                u_B = u_A + tau_k + 1.0
+                adjacency = (n_node[0]-c_node[0], n_node[1]-c_node[1])
+                for adjacent_node in self.FastMarcherSG.adjacency_list[adjacency]:
+                    B_node = (n_node[0]+adjacent_node[0], n_node[1]+adjacent_node[1])
+                    if B_node in A_prime and A_prime[B_node] < u_B:
+                        u_B = A_prime[B_node]
+                if tau_k > abs(u_A - u_B):
+                    c_cost = 0.5*(u_A + u_B + math.sqrt(2*tau_k**2 - (u_A - u_B)**2))
+                else:
+                    if u_A <= u_B:
+                        c_cost = u_A + tau_k
+                    else:
+                        c_cost = u_B + tau_k
+                if n_node not in A_prime or A_prime[n_node] > c_cost:
+                    frontier.push(n_node, c_cost)
+                    
+            if self.image_frames != 0 and u_A > self.plot_cost :            
+                self.image_frames.append(self.plot_cost_frame(A_prime, loc))
+                self.plot_cost += self.delta_plot        
+
+    def full_kill_downwind(self, start_nodes, cost_to_come, child_list):
+        self.downwind_nodes = 0
+        interface_list = set([])
+        downwind_list = set([])
+        search_list = fm_graphtools.PriorityQueue([])
+        for c_node in start_nodes:
+            search_list.push(c_node, cost_to_come[c_node])
+        
+        c_cost, c_node = search_list.pop()
+        # Start from the start node
+        while True:
+            downwind_list.update( {c_node} )
+            del cost_to_come[c_node]
+            # Check all the neighbours of the current node
+            for node, TEMPCOST in self.graph.neighbours(c_node):
+                # If they're children, add them to the search
+                if (c_node in child_list) and node in child_list[c_node]:
+                    search_list.push(node, cost_to_come[node])
+                # If they're not children and they're not in the downwind list, they're interface nodes
+                elif node not in downwind_list:
+                    interface_list.update( {node} )
+            try:
+                c_cost, c_node = search_list.pop()
+                self.downwind_nodes+=1
+            except KeyError:
+                break
+        return interface_list
+        
+    def split_path(self, SG_cost, GS_cost, midnode):
+        path1 = self.FastMarcherSG.path_source_to_point(self.start_node, midnode, SG_cost)
+        path2 = self.FastMarcherGS.path_source_to_point(self.end_node, midnode, GS_cost)
+        path2.remove(midnode)
+        path2.reverse()
+        path1.extend(path2)
+        self.updated_path = path1
 '''
         min_cost = 1000
         for n_node, tau_k in self.graph.neighbours(self.best_midnode):

@@ -1,9 +1,26 @@
 import matplotlib.pyplot as plt
 import numpy as np
-plt.rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+import pickle
+plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
-def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['steelblue', 'lawngreen', 'darkred', 'c'], comparison=2):
+def load_and_plot(DATA_DIR, nowstr, labels = ['Random', 'Max Variance', 'LCB', 'FMEx']):
+    fh = open(DATA_DIR+nowstr+'.p', "rb")
+    best_path_cost = pickle.load(fh)    
+    true_path_cost = pickle.load(fh)    
+    est_path_cost = pickle.load(fh)    
+    est_path_var = pickle.load(fh)
+    fh.close()
+    fig1, fig2, fig3, fig4 = make_plots(best_path_cost, true_path_cost, est_path_cost, labels, comparison=3)
+    return fig1,fig2,fig3,fig4   
+
+def save_plots(FIG_DIR, nowstr, fig1,fig2,fig3,fig4):
+    fig1.savefig(FIG_DIR+nowstr+'C.pdf', bbox_inches='tight')
+    fig2.savefig(FIG_DIR+nowstr+'.pdf', bbox_inches='tight')
+    fig3.savefig(FIG_DIR+nowstr+'L.pdf', bbox_inches='tight')
+    fig4.savefig(FIG_DIR+nowstr+'E.pdf', bbox_inches='tight')
+
+def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['cornflowerblue', 'green', 'firebrick', 'orange'], comparison=3):
     fig_size = 4
     # Input arrays are [numruns, nummethods, numsamples]
     NUM_STATRUNS = true_path_cost.shape[0]
@@ -21,30 +38,31 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['ste
         #RMS = np.sqrt(np.mean(np.power(path_est_error[:,i,:], 2), axis=0))
         ax1.plot(np.arange(NUM_SAMPLES)+1, RMS, color=cols[i], label=labels[i])
     ax1.set_xlim(0, NUM_SAMPLES)
-    ax1.legend(prop={'size':10})
+    ax1.legend(loc=0, prop={'size':10})
     ax1.set_xlabel('Number of samples')
     ax1.grid(True, which='major', axis='y')
     ax1.set_ylabel('Normalised path prediction RMS error')    
     
     fig2, ax2 = plt.subplots()
     fig2.set_size_inches(fig_size+1, fig_size)
+    sample_bars = int(NUM_SAMPLES/10)
     for i in range(nmethods):
-        tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in np.arange(0, NUM_SAMPLES, 3)]
-        pos = np.arange(0,NUM_SAMPLES*4,12)+i+1
+        tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in np.arange(0, NUM_SAMPLES, sample_bars)]
+        pos = np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+i+1
         ax2.boxplot(tempdata, positions=pos, showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
             boxprops={'color':cols[i]}, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
             bootstrap=5000)  #, , medianprops={'color':cols[i]}
         tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)]    
-        ax2.plot(np.arange(0,NUM_SAMPLES*4,4)+i+1, np.median(tempdata, axis=2), cols[i], label=labels[i])
-    ax2.set_xlim(0, 4*NUM_SAMPLES)
-    ax2.set_xticks(np.arange(0,NUM_SAMPLES*4,12)+2)
-    ax2.set_xticklabels(range(1,NUM_SAMPLES+1, 3))
+        ax2.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, np.median(tempdata, axis=2), cols[i], label=labels[i])
+    ax2.set_xlim(0, nmethods*NUM_SAMPLES)
+    ax2.set_xticks(np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+2)
+    ax2.set_xticklabels(range(1,NUM_SAMPLES+1, sample_bars))
     ax2.set_yscale('log')
     ax2.grid(True, which='major', axis='y')
-    ax2.legend(prop={'size':10})
+    ax2.legend(loc=0, prop={'size':10})
     ax2.set_xlabel('Number of samples')
     ax2.set_ylabel('Additional path cost (normalised against best path)')
-    ax2.set_ylim(8e-3, 1e0)
+    #ax2.set_ylim(8e-3, 1e0)
 
     
     fig3, ax3 = plt.subplots()
@@ -69,22 +87,29 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['ste
     
     fig4, ax4 = plt.subplots()
     fig4.set_size_inches(fig_size+1, fig_size)
-    mcost = []
-    for i in range(nmethods):
-        tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)]
-        mcost.append(np.squeeze(np.nanmean(tempdata, axis=2)))
-    
     a  = set(range(nmethods))
     a.remove(comparison)
     for i in a:
-        tempdata = np.divide(mcost[i], mcost[comparison])*100
-        ax4.plot(np.arange(NUM_SAMPLES)+1, tempdata, color=cols[i], label=labels[i])
-    ax4.set_xlim(0, NUM_SAMPLES+1)
+        tempdata = np.divide(true_path_cost[:,i,:], true_path_cost[:,comparison,:])*100.0
+        ax4.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, np.squeeze(np.median(tempdata, axis=0)), color=cols[i], label=labels[i])
+        
+        tempdata = tempdata[:,np.arange(0, NUM_SAMPLES, sample_bars)]
+        pos = np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+i+1
+        
+        #stds = np.squeeze(np.std(tempdata, axis=0))
+        #ax4.errorbar(pos, np.squeeze(np.mean(tempdata, axis=0)), stds, lw=3)
+       
+        ax4.boxplot(tempdata, positions=pos, showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
+            boxprops={'color':cols[i]}, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
+            bootstrap=5000)  #, , medianprops={'color':cols[i]}
+    ax4.set_xlim(0, nmethods*NUM_SAMPLES)
+    ax4.set_xticks(np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+2)
+    ax4.set_xticklabels(range(1,NUM_SAMPLES+1, sample_bars))    
     ax4.grid(True, which='major', axis='y')
     ax4.legend(loc=0, prop={'size':10})
     ax4.set_xlabel('Number of samples')
     # ax4.set_title('Path cost error relative to {0} method'.format(labels[comparison]))
-    ax4.set_ylabel('Relative path cost error (\%)'.format(labels[comparison]))  
+    ax4.set_ylabel('Mean path cost relative to {0} (\%)'.format(labels[comparison]))  
             
     
     return fig1, fig2, fig3, fig4
@@ -97,3 +122,24 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['ste
     #h_lowcost = [ax3.bar(np.arange(0.75, NUM_SAMPLES), lowcost_rand, 0.5, color=cols[0], label=labels[0])]
     #h_lowcost.append(ax3.bar(np.arange(0.75, NUM_SAMPLES), lowcost_maxv, 0.5, bottom=lowcost_rand, color=cols[1], label=labels[1]))
     #h_lowcost.append(ax3.bar(np.arange(0.75, NUM_SAMPLES), lowcost_fm, 0.5, bottom=(lowcost_rand+lowcost_maxv), color=cols[2], label=labels[2]))
+
+
+
+    #fig4, ax4 = plt.subplots()
+    #fig4.set_size_inches(fig_size+1, fig_size)
+    #mcost = []
+    #for i in range(nmethods):
+    #    tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)]
+    #    mcost.append(np.squeeze(np.nanmean(tempdata, axis=2)))
+    #
+    #a  = set(range(nmethods))
+    #a.remove(comparison)
+    #for i in a:
+    #    tempdata = np.divide(mcost[i], mcost[comparison])*100
+    #    ax4.plot(np.arange(NUM_SAMPLES)+1, tempdata, color=cols[i], label=labels[i])
+    #ax4.set_xlim(0, NUM_SAMPLES+1)
+    #ax4.grid(True, which='major', axis='y')
+    #ax4.legend(loc=0, prop={'size':10})
+    #ax4.set_xlabel('Number of samples')
+    ## ax4.set_title('Path cost error relative to {0} method'.format(labels[comparison]))
+    #ax4.set_ylabel('Relative path cost error (\%)'.format(labels[comparison]))  

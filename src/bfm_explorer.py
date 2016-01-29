@@ -3,8 +3,8 @@ import GPy
 import fast_marcher
 import fm_graphtools
 
-def zero_fun(a,b):
-    return 0
+def zero_fun(X):
+    return 0,0
 
 class mat_cost_function:
     def __init__(self, graph, cost_fun=zero_fun, *args, **kwargs):
@@ -19,11 +19,12 @@ class mat_cost_function:
         return self.mat[a-self.left,b-self.bottom]
         
 class mat_cost_function_GP:
-    def __init__(self, graph, cost_fun=zero_fun, *args, **kwargs):
+    def __init__(self, graph, cost_fun=zero_fun, mean_value=0, *args, **kwargs):
         lx = np.arange(graph.left, graph.right, dtype='int')
         ly = np.arange(graph.bottom, graph.top, dtype='int')
         X_star = np.array([[x,y] for x in lx for y in ly])
-        Y_star,Y_var = cost_fun(X_star[:,0], X_star[:,1],*args, **kwargs)
+        Y_star,Y_var = cost_fun(X_star,*args, **kwargs)
+        Y_star += mean_value
         self.cost_dict = {(X_star[k,0],X_star[k,1]):Y_star[k,0] for k in range(Y_star.shape[0])}
         self.var_dict  = {(X_star[k,0],X_star[k,1]):Y_var[k,0]  for k in range(Y_var.shape[0])}
     
@@ -33,9 +34,8 @@ class mat_cost_function_GP:
     def calc_var(self,a,b):
         return self.var_dict[(a,b)]
 
-def GPdepth_cost_function(x, y, GPm, max_depth=1.0e3, mean_depth=0.0):
+def GPdepth_cost_function(X, GPm, max_depth=1.0e3, mean_depth=0.0):
     # Cost function shold be strictly positive (depth < max_depth)
-    X = np.array([np.ravel(x), np.ravel(y)]).transpose()
     mean,var = GPm.predict(X)
     mean = max_depth-(mean+mean_depth)
     mean[mean < 0.1] = 0.1
@@ -45,7 +45,7 @@ def GPdepth_cost_function(x, y, GPm, max_depth=1.0e3, mean_depth=0.0):
         return mean,var
             
 class fast_marching_explorer:
-    def __init__(self, gridsize, start_node, end_node, X, Y, mean_value=0, obs=[], GP_l=14.0,GP_sv=45.0,GP_sn=1.0,bl_corner=[0,0],*args,**kwargs):
+    def __init__(self, gridsize, start_node, end_node, X, Y, mean_value=0, obs=[], GP_l=15.0,GP_sv=5.0,GP_sn=0.5,bl_corner=[0,0],*args,**kwargs):
         self.start_node = start_node
         self.end_node = end_node
         
@@ -53,7 +53,7 @@ class fast_marching_explorer:
         self.X = X
         self.Y = Y
         self.mean_value = mean_value
-        self.GP_model = GPy.models.GPRegression(X,Y-mean_value,GPy.kern.RBF(2))
+        self.GP_model = GPy.models.GPRegression(X,Y-self.mean_value,GPy.kern.RBF(2))
         self.GP_model.kern.lengthscale = GP_l
         self.GP_model.kern.variance = GP_sv
         self.GP_model.Gaussian_noise.variance = GP_sn
@@ -63,7 +63,7 @@ class fast_marching_explorer:
         self.GP_cost_kwargs = kwargs        
         self.GP_cost_graph = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1], obstacles=obs, bl_corner=bl_corner)
         self.cmodel = mat_cost_function_GP(self.GP_cost_graph, 
-            cost_fun=GPdepth_cost_function, GPm=self.GP_model, *self.GP_cost_args, **self.GP_cost_kwargs)
+            cost_fun=self.GP_model.predict, mean_value=self.mean_value, *self.GP_cost_args, **self.GP_cost_kwargs)
         self.GP_cost_graph.cost_fun = self.cmodel.calc_cost
         self.GP_cost_graph.var_fun = self.cmodel.calc_var
                 
@@ -80,12 +80,12 @@ class fast_marching_explorer:
         self.fbFM.set_goal(self.end_node)
         
         
-    def cost_update(self, cost_update):
-        self.fbFM.update(cost_update)
+    def cost_update(self, cost_update,**kwargs):
+        self.fbFM.update(cost_update,**kwargs)
         return self.fbFM.updated_min_path_cost
     
-    def cost_update_new(self, cost_update,loc=None):
-        self.fbFM.update_new2(cost_update,loc)
+    def cost_update_new(self, cost_update,**kwargs):
+        self.fbFM.update_new3(cost_update,**kwargs)
         return self.fbFM.updated_min_path_cost
         
     def add_observation(self, Xnew, Ynew):
@@ -94,7 +94,7 @@ class fast_marching_explorer:
         self.GP_model.set_XY(self.X, self.Y-self.mean_value)
         
         self.cmodel = mat_cost_function_GP(self.GP_cost_graph, 
-            cost_fun=GPdepth_cost_function, GPm=self.GP_model, *self.GP_cost_args, **self.GP_cost_kwargs)
+            cost_fun=self.GP_model.predict, mean_value = self.mean_value, *self.GP_cost_args, **self.GP_cost_kwargs)
         #self.Yfull, self.varYfull = self.GP_model.predict(self.Xfull)
         #self.Yfull += self.mean_value
         #self.cmodel.mat = np.reshape(self.Yfull, (self.GP_cost_graph.height, self.GP_cost_graph.width)).transpose()
@@ -106,8 +106,7 @@ class fast_marching_explorer:
         self.fbFM.set_graph(self.GP_cost_graph)
         self.fbFM.set_start(self.start_node)
         self.fbFM.set_goal(self.end_node)
-        self.fbFM.search()
-        self.fbFM.pull_path()
+        self.search()
 
     def set_plots(self, imf, ax):
         self.fbFM.set_plots(imf, ax)

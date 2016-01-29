@@ -63,7 +63,7 @@ class polynomial_precompute_cost_modifier:
                 kd = 1.0*( max(0,(1-dd))**(self.j+1)*((self.j+1)*dd + 1) )
                 if kd > self.min_val: self.cost_dict[(x,y)] = kd
                 
-    def calc_cost(self, cx, cy, delta):
+    def set_update(self, cx, cy, delta):
         out_cost = {(x+cx,y+cy):delta*self.cost_dict[(x,y)] for (x,y) in self.cost_dict 
             if x+cx >= self.graph.left and x+cx < self.graph.right and
                 y+cy >= self.graph.bottom and y+cy < self.graph.top and
@@ -108,23 +108,28 @@ class Graph:
         return self.edges[id]
 
 class CostmapGrid:
-    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[], bl_corner=(0,0)):
+    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[], bl_corner=(0,0), delta=[1,1]):
         self.width = width
         self.height = height
         self.obstacles = obstacles         
         self.cost_fun = cost_fun
         self.delta_costs = {}
         self.bl_corner = bl_corner
+        self.delta = delta
         self.set_bounds()
         
     def set_bounds(self):
+        self.nx = int(self.width/self.delta[0])
+        self.ny = int(self.height/self.delta[1])
+        self.width = self.nx*self.delta[0]
+        self.height = self.ny*self.delta[1]
         self.left = self.bl_corner[0]
         self.right = self.bl_corner[0] + self.width
         self.bottom = self.bl_corner[1]
         self.top = self.bl_corner[1] + self.height
         
     def copy(self):
-        return CostmapGrid(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, bl_corner=self.bl_corner)
+        return CostmapGrid(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, bl_corner=self.bl_corner, delta=self.delta)
         
     def in_bounds(self, id):
         (x, y) = id
@@ -135,7 +140,7 @@ class CostmapGrid:
    
     def neighbours(self, id):
         (x, y) = id
-        results = [(x+1, y), (x, y-1), (x-1, y), (x, y+1)]
+        results = [(x+self.delta[0], y), (x, y-self.delta[1]), (x-self.delta[0], y), (x, y+self.delta[1])]
         results = filter(self.in_bounds, results)
         results = filter(self.passable, results)
         results = [((a, b), self.node_cost((a, b))) for a,b in results]
@@ -145,13 +150,28 @@ class CostmapGrid:
         cost = self.cost_fun(id[0], id[1])
         if id in self.delta_costs:
             cost = cost+self.delta_costs[id]
-        return max(0, cost)
+        return max(0.01, cost)
         
     def add_delta_costs(self, cost_dictionary):
         self.delta_costs.update(cost_dictionary)
         
     def clear_delta_costs(self):
         self.delta_costs = {}
+        
+    def graph_to_index(self, xy):
+        xi = int((xy[0]-self.left)/self.delta[0])
+        yi = int((xy[1]-self.bottom)/self.delta[1])
+        return xi,yi
+        
+    def index_to_graph(self, xyi):
+        x = self.left+xyi[0]*self.delta[0]
+        y = self.bottom+xyi[1]*self.delta[1]   
+        return x,y
+        
+    def get_extent(self):
+        extent = [self.left-self.delta[0]*.5, self.right-self.delta[0]*0.5,
+            self.bottom-self.delta[1]*.5, self.top-self.delta[1]*0.5]
+        return extent
       
 class PriorityQueue(object):
     # Priority queue based on the heap object
@@ -203,26 +223,30 @@ class PriorityQueue(object):
             heapq.heappop(self.elements)
 
 class CostmapGridFixedObs(CostmapGrid):
-    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[], bl_corner=(0,0)):
+    def __init__(self, width, height, cost_fun=unit_cost_function, obstacles=[], bl_corner=(0,0), delta=[1,1], fixed_neighbours=None):
         self.width = width
         self.height = height
         self.obstacles = obstacles         
         self.cost_fun = cost_fun
         self.delta_costs = {}
-        self.bl_corner=bl_corner
+        self.bl_corner = bl_corner
+        self.delta = delta
         self.set_bounds()
-        self.rebuild_neighbours()
+        self.fixed_neighbours = fixed_neighbours
+        if self.fixed_neighbours == None:
+            self.rebuild_neighbours()
              
     def copy(self):
-        return CostmapGridFixedObs(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, bl_corner=self.bl_corner)
-   
+        return CostmapGridFixedObs(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, 
+            bl_corner=self.bl_corner, delta=self.delta, fixed_neighbours=self.fixed_neighbours)
+  
     def passable(self, id):
         return id not in self.obstacles
-   
+
     def neighbours(self, id):
         results = [(node, self.node_cost(node)) for node in self.fixed_neighbours[id]]
         return results
-        
+
     def update_obstacles(self, new_obstacles):
         for obs in new_obstacles:
             if obs not in self.obstacles:
@@ -231,9 +255,9 @@ class CostmapGridFixedObs(CostmapGrid):
         
     def rebuild_neighbours(self):
         self.fixed_neighbours = {}
-        for x in range(self.left, self.right):
-            for y in range(self.bottom, self.top):
-                results = [(x+1, y), (x, y-1), (x-1, y), (x, y+1)]
+        for x in range(self.left, self.right, self.delta[0]):
+            for y in range(self.bottom, self.top, self.delta[1]):
+                results = [(x+self.delta[0], y), (x, y-self.delta[1]), (x-+self.delta[0], y), (x, y+self.delta[1])]
                 results = filter(self.in_bounds, results)
                 results = filter(self.passable, results)
                 self.fixed_neighbours.update({(x,y):results})
