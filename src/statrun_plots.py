@@ -20,12 +20,15 @@ def save_plots(FIG_DIR, nowstr, fig1,fig2,fig3,fig4):
     fig3.savefig(FIG_DIR+nowstr+'L.pdf', bbox_inches='tight')
     fig4.savefig(FIG_DIR+nowstr+'E.pdf', bbox_inches='tight')
 
-def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['cornflowerblue', 'green', 'firebrick', 'orange'], comparison=3):
+def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None, comparison=3):
     fig_size = 4
     # Input arrays are [numruns, nummethods, numsamples]
     NUM_STATRUNS = true_path_cost.shape[0]
     nmethods = true_path_cost.shape[1]
     NUM_SAMPLES = true_path_cost.shape[2]
+    if cols == None:
+        cmap = plt.get_cmap('jet')
+        cols = cmap(np.linspace(0, 1.0, nmethods))
     
     fig1, ax1 = plt.subplots()
     path_est_error = (true_path_cost - est_path_cost)/true_path_cost
@@ -36,7 +39,7 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=['cor
         for j in range(NUM_SAMPLES):
             RMS[j] = np.sqrt(np.mean(np.power([k for k in path_est_error[:,i,j] if not np.isnan(k)], 2)))
         #RMS = np.sqrt(np.mean(np.power(path_est_error[:,i,:], 2), axis=0))
-        ax1.plot(np.arange(NUM_SAMPLES)+1, RMS, color=cols[i], label=labels[i])
+        ax1.plot(np.arange(NUM_SAMPLES)+1, RMS, color=cols[i%len(cols)], label=labels[i])
     ax1.set_xlim(0, NUM_SAMPLES)
     ax1.legend(loc=0, prop={'size':10})
     ax1.set_xlabel('Number of samples')
