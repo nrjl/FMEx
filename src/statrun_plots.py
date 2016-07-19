@@ -51,12 +51,13 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None,
     sample_bars = int(NUM_SAMPLES/10)
     for i in range(nmethods):
         tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in np.arange(0, NUM_SAMPLES, sample_bars)]
+        tempdata = [td[~np.isnan(td)] for td in tempdata]
         pos = np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+i+1
         ax2.boxplot(tempdata, positions=pos, showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
             boxprops={'color':cols[i]}, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
             bootstrap=5000)  #, , medianprops={'color':cols[i]}
-        tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)]    
-        ax2.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, np.median(tempdata, axis=2), cols[i], label=labels[i])
+        tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)] 
+        ax2.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, [np.median(td[~np.isnan(td)]) for td in tempdata], cols[i], label=labels[i])
     ax2.set_xlim(0, nmethods*NUM_SAMPLES)
     ax2.set_xticks(np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+2)
     ax2.set_xticklabels(range(1,NUM_SAMPLES+1, sample_bars))
@@ -94,7 +95,7 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None,
     a.remove(comparison)
     for i in a:
         tempdata = np.divide(true_path_cost[:,i,:], true_path_cost[:,comparison,:])*100.0
-        ax4.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, np.squeeze(np.median(tempdata, axis=0)), color=cols[i], label=labels[i])
+        ax4.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, [np.median(td[~np.isnan(td)]) for td in tempdata.transpose()], color=cols[i], label=labels[i])
         
         tempdata = tempdata[:,np.arange(0, NUM_SAMPLES, sample_bars)]
         pos = np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+i+1
@@ -102,7 +103,8 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None,
         #stds = np.squeeze(np.std(tempdata, axis=0))
         #ax4.errorbar(pos, np.squeeze(np.mean(tempdata, axis=0)), stds, lw=3)
        
-        ax4.boxplot(tempdata, positions=pos, showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
+        for k,td in enumerate(tempdata.transpose()):
+            ax4.boxplot(td[~np.isnan(td)] , positions=[pos[k]], showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
             boxprops={'color':cols[i]}, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
             bootstrap=5000)  #, , medianprops={'color':cols[i]}
     ax4.set_xlim(0, nmethods*NUM_SAMPLES)

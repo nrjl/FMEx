@@ -15,10 +15,10 @@ plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
 SAMPLING_VIDEOS = False  # Turn on video frames for each sample
-OBSTACLES_ON = True      # Obstacles on
+OBSTACLES_ON = False      # Obstacles on
 TIMED_PLOTS = False     # Output (some) frames as pdf images
 
-NUM_STATRUNS = 60       # Number of statistical runs (random maps) 
+NUM_STATRUNS = 100       # Number of statistical runs (random maps) 
 NUM_SAMPLES = 50         # Number of sample points in each run
             
 gridsize = [100, 100]    # Grid size
