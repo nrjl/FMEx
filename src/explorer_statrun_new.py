@@ -14,13 +14,17 @@ import statrun_plots
 plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
+GEN_PLOTS = True
 SAMPLING_VIDEOS = False  # Turn on video frames for each sample
+SUMMARY_VIDEO = False   
+
 OBSTACLES_ON = False      # Obstacles on
 TIMED_PLOTS = False     # Output (some) frames as pdf images
 
 NUM_STATRUNS = 100       # Number of statistical runs (random maps) 
 NUM_SAMPLES = 50         # Number of sample points in each run
-            
+
+FMEX_DIR = '/home/nick/Dropbox/work/FastMarching/FMEx/'
 gridsize = [100, 100]    # Grid size
 SEED_NUM = 9
 random.seed(SEED_NUM)           # Random seed
@@ -34,7 +38,7 @@ poly_update_size = 15
 GP_l=10.0; GP_sv=15.0; GP_sn=0.1
 OBS_STD = 0.05
 
-delta_costs = [-1.0, 0.5]   # How many stds above and below for FM sampling
+delta_costs = [-1.0, 1.0]   # How many stds above and below for FM sampling
 delta_costs2 = [-3.0, -2.0, -1.0, 1.0, 2.0, 3.0]
 n_random_samples = 6
 
@@ -46,9 +50,9 @@ labels = ['Random', 'Max Variance', 'LCB', 'FMEx $1\sigma$', 'FMEx $3\sigma$', '
 num_obstacles = 40       # Total number of obstacles
 obstacle_size = 10       # Obstacle size
 
-DATA_DIR = '/home/nick/Dropbox/work/FastMarching/FMEx/data/'
-VID_DIR = '/home/nick/Dropbox/work/FastMarching/FMEx/vid/'
-FIG_DIR = '/home/nick/Dropbox/work/FastMarching/FMEx/fig/'
+DATA_DIR = FMEX_DIR+'data/'
+VID_DIR = FMEX_DIR+'vid/'
+FIG_DIR = FMEX_DIR+'fig/'
 
 my_blobs = [[30, 20, 16, 10], [60, 40,  6, 15], [10, 40, 32, 12], [60, 5, 15, 9],
             [25, 35,  8, 15], [70, 30, 12, 12], [80, 40, 16, 15], [5, 60, 30, 7],
@@ -149,7 +153,7 @@ best_path_cost = np.zeros((1, NUM_STATRUNS), float)
 true_path_cost = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
 est_path_cost = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
 est_path_var = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
-sample_times = np.zeros((NUM_STATRUNS, NUM_SAMPLES), float)
+sample_time = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
 
 temp_g = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1])
 
@@ -157,8 +161,9 @@ if SAMPLING_VIDEOS:
     fig_s,ax_s = create_cost_plot(temp_g)
 if TIMED_PLOTS:
     fig_t,ax_t = create_cost_plot(temp_g)
-      
-fig_v,ax_v = create_cost_plot(temp_g)
+     
+if SUMMARY_VIDEO:
+    fig_v,ax_v = create_cost_plot(temp_g)
 
 video_frames=[]
 nowstr = time.strftime("%Y_%m_%d-%H_%M")
@@ -268,7 +273,9 @@ while jj < NUM_STATRUNS:
         bestX[5,:] = fmex_sampler(explorers[5], rand_samples, poly_cost_obj, np.random.normal(loc=0, scale=1.0, size=n_random_samples))
            
         for dex, explorer in enumerate(explorers):
+            ts = time.time()
             explorer.add_observation([bestX[dex,:]], [[sample_cost_fun(explore_cost_function, bestX[dex,:], cblobs)]])
+            sample_time[jj,dex,ii] = time.time()-ts
             true_path_cost[jj,dex,ii] = calc_true_path_cost(explore_cost_function, explorer.fbFM.path, cblobs)
             est_path_cost[jj,dex,ii],est_path_var[jj,dex,ii] = calc_est_path_cost(explorer.GP_model, mean_value, explorer.fbFM.path)
 
@@ -293,7 +300,8 @@ while jj < NUM_STATRUNS:
         ani_sampling = animation.ArtistAnimation(fig_s, sampling_frames, interval=100, repeat_delay=0)
         ani_sampling.save('{0}{1}S{2:02d}.mp4'.format(VID_DIR, nowstr, jj), writer = 'avconv', fps=2, bitrate=1500)        
     best_path_cost[0][jj] = min([best_path_cost[0][jj], true_path_cost[jj,0,-1], true_path_cost[jj,1,-1], true_path_cost[jj,3,-1]])
-    video_frames.append(plot_final_paths(ax_v, true_g, tFM.path, [explorers[nn] for nn in ex_plot_index]))
+    if SUMMARY_VIDEO:
+        video_frames.append(plot_final_paths(ax_v, true_g, tFM.path, [explorers[nn] for nn in ex_plot_index]))
     if sampling_frames: 
         for item in sampling_frames[-1]:
             item.remove()
@@ -308,19 +316,20 @@ pickle.dump(best_path_cost, fh)
 pickle.dump(true_path_cost, fh)
 pickle.dump(est_path_cost, fh)
 pickle.dump(est_path_var, fh)
+pickle.dump(sample_time, fh)
 fh.close()
 
+if SUMMARY_VIDEO:
+    ani1 = animation.ArtistAnimation(fig_v, video_frames, interval=1000, repeat_delay=0)
+    ani1.save(VID_DIR+nowstr+'.mp4', writer = 'avconv', fps=1, bitrate=1500)
 
-ani1 = animation.ArtistAnimation(fig_v, video_frames, interval=1000, repeat_delay=0)
-ani1.save(VID_DIR+nowstr+'.mp4', writer = 'avconv', fps=1, bitrate=1500)
-
-
-fig1, fig2, fig3, fig4 = statrun_plots.make_plots(best_path_cost, true_path_cost, est_path_cost, labels, comparison=3, cols=['cornflowerblue', 'green', 'firebrick', 'orange', 'purple', 'darkslateblue'])
-fig1.savefig(FIG_DIR+nowstr+'C.pdf', bbox_inches='tight')
-fig2.savefig(FIG_DIR+nowstr+'.pdf', bbox_inches='tight')
-fig3.savefig(FIG_DIR+nowstr+'L.pdf', bbox_inches='tight')
-fig4.savefig(FIG_DIR+nowstr+'E.pdf', bbox_inches='tight')
-plt.show()
+if GEN_PLOTS:
+    fig1, fig2, fig3, fig4 = statrun_plots.make_plots(best_path_cost, true_path_cost, est_path_cost, labels, comparison=3, cols=['cornflowerblue', 'green', 'firebrick', 'orange', 'purple', 'darkslateblue'])
+    fig1.savefig(FIG_DIR+nowstr+'C.pdf', bbox_inches='tight')
+    fig2.savefig(FIG_DIR+nowstr+'.pdf', bbox_inches='tight')
+    fig3.savefig(FIG_DIR+nowstr+'L.pdf', bbox_inches='tight')
+    fig4.savefig(FIG_DIR+nowstr+'E.pdf', bbox_inches='tight')
+    plt.show()
 
 
 #ax2 = plt.subplot()
