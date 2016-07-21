@@ -9,14 +9,14 @@ import fm_plottools
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pickle
-import statrun_plots
+import statrun_plots_new
 
 plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
 GEN_PLOTS = True
 SAMPLING_VIDEOS = False  # Turn on video frames for each sample
-SUMMARY_VIDEO = False   
+SUMMARY_VIDEO = True   
 
 OBSTACLES_ON = False      # Obstacles on
 TIMED_PLOTS = False     # Output (some) frames as pdf images
@@ -29,8 +29,9 @@ gridsize = [100, 100]    # Grid size
 SEED_NUM = 9
 random.seed(SEED_NUM)           # Random seed
 
-mean_value = 5.0           # Mean value of the field for GP
-num_blobs = 30             # Number of blobs in each field
+field_base_val = 5.0           # Mean value of the field for GP
+GP_mean = field_base_val
+num_blobs = 15             # Number of blobs in each field
 peak_range = [-3.0,8.0]    # Low and high peak values for map blobs
 spread_range = [5,12]      # Low and high spread distances for map blobs
 poly_update_size = 15
@@ -44,7 +45,7 @@ n_random_samples = 6
 
 nmethods = 6
 plot_timer = 10
-ex_plot_index = [0,1,3]
+ex_plot_index = [1,2,4]
 labels = ['Random', 'Max Variance', 'LCB', 'FMEx $1\sigma$', 'FMEx $3\sigma$', 'FMEx MC{0:d}'.format(n_random_samples)]
 
 num_obstacles = 40       # Total number of obstacles
@@ -66,7 +67,7 @@ def normpdf(x, mu, sigma):
 def explore_cost_function(a, b, blobs):
     # blobs are defined by [xloc, yloc, spread, peakval]
     # blobs = my_blobs
-    cost = mean_value
+    cost = field_base_val
     for i in range(np.shape(blobs)[0]):
         cost += blobs[i][3]*math.exp(-math.sqrt((a-blobs[i][0])**2 + (b-blobs[i][1])**2)/blobs[i][2])
     return cost
@@ -112,7 +113,7 @@ def calc_est_path_cost(gp_model, mean_val, path):
 def check_row(mat, row):
     return np.equal(mat,row).all(1).any()
 
-def create_cost_plot(graph=None):
+def create_cost_plot(graph=None,labels=None):
     fig, ax = plt.subplots(2, 2, sharex=True, sharey=True)
     if graph != None:
         for axn in ax.flat:
@@ -124,11 +125,9 @@ def create_cost_plot(graph=None):
         for axn in ax.flat:
             axn.autoscale(tight=True)
  
-    ax[0][0].set_title("True cost field")
-    ax[0][1].set_title("Random sampling")
-    ax[1][0].set_title("Max Variance sampling")
-    ax[1][1].set_title("FMEx")
-    #ax[1][2].set_title("Estimated cost - FM sampling2")
+    if labels != None:
+        for aa,label in zip(ax.ravel(),labels):
+            aa.set_title(label)    
     return fig,ax
 
 def plot_final_paths(ax, true_g, true_path, models):        
@@ -157,13 +156,14 @@ sample_time = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
 
 temp_g = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1])
 
+llab = ["True cost field"]
+llab.extend([labels[i] for i in ex_plot_index])
 if SAMPLING_VIDEOS:
-    fig_s,ax_s = create_cost_plot(temp_g)
+    fig_s,ax_s = create_cost_plot(temp_g, llab)
 if TIMED_PLOTS:
-    fig_t,ax_t = create_cost_plot(temp_g)
-     
+    fig_t,ax_t = create_cost_plot(temp_g, llab)
 if SUMMARY_VIDEO:
-    fig_v,ax_v = create_cost_plot(temp_g)
+    fig_v,ax_v = create_cost_plot(temp_g, llab)
 
 video_frames=[]
 nowstr = time.strftime("%Y_%m_%d-%H_%M")
@@ -176,7 +176,8 @@ fh.write("Number of statruns: {0}\n".format(NUM_STATRUNS))
 fh.write("Number of samples: {0}\n".format(NUM_SAMPLES))
 fh.write("Gridsize: {0}\n".format(gridsize))
 fh.write("Random seed: {0}\n".format(SEED_NUM))
-fh.write("Mean value: {0}\n".format(mean_value))
+fh.write("Fielg base value: {0}\n".format(field_base_val))
+fh.write("GP mean: {0}\n".format(GP_mean))
 fh.write("Map blobs: {0}, Peak range: {1}, Spread range: {2}\n".format(num_blobs, peak_range, spread_range))
 fh.write("Delta costs: {0}, {1}\n".format(delta_costs, delta_costs2))
 fh.write("GP: l={0}, s_v={1}, s_n={2}\n".format(GP_l, GP_sv, GP_sn))
@@ -248,7 +249,7 @@ while jj < NUM_STATRUNS:
     
     # Create BiFM explorer objects for each sampling strategy
     t0 = time.time()
-    explorers = [fmex_constructor(gridsize, start_node, end_node, X, Y, mean_value, true_g.obstacles) for nn in range(nmethods)]
+    explorers = [fmex_constructor(gridsize, start_node, end_node, X, Y, GP_mean, true_g.obstacles) for nn in range(nmethods)]
     #print "Construction took {0}s".format(time.time()-t0)
     
     ## UPDATES!
@@ -265,19 +266,17 @@ while jj < NUM_STATRUNS:
         bestX = np.zeros((nmethods,2))
 
         # Run samplers:
-        bestX[0,:] = random_sampler(explorers[0], rand_samples)
-        bestX[1,:] = maxvar_sampler(explorers[1], rand_samples)
-        bestX[2,:] = lcb_sampler(explorers[2], rand_samples)
-        bestX[3,:] = fmex_sampler(explorers[3], rand_samples, poly_cost_obj, delta_costs)
-        bestX[4,:] = fmex_sampler(explorers[4], rand_samples, poly_cost_obj, delta_costs2)
-        bestX[5,:] = fmex_sampler(explorers[5], rand_samples, poly_cost_obj, np.random.normal(loc=0, scale=1.0, size=n_random_samples))
+        ts = time.time(); bestX[0,:] = random_sampler(explorers[0], rand_samples); sample_time[jj,0,ii] = time.time()-ts
+        ts = time.time(); bestX[1,:] = maxvar_sampler(explorers[1], rand_samples); sample_time[jj,1,ii] = time.time()-ts
+        ts = time.time(); bestX[2,:] = lcb_sampler(explorers[2], rand_samples); sample_time[jj,2,ii] = time.time()-ts
+        ts = time.time(); bestX[3,:] = fmex_sampler(explorers[3], rand_samples, poly_cost_obj, delta_costs); sample_time[jj,3,ii] = time.time()-ts
+        ts = time.time(); bestX[4,:] = fmex_sampler(explorers[4], rand_samples, poly_cost_obj, delta_costs2); sample_time[jj,4,ii] = time.time()-ts
+        ts = time.time(); bestX[5,:] = fmex_sampler(explorers[5], rand_samples, poly_cost_obj, np.random.normal(loc=0, scale=1.0, size=n_random_samples)); sample_time[jj,5,ii] = time.time()-ts
            
         for dex, explorer in enumerate(explorers):
-            ts = time.time()
             explorer.add_observation([bestX[dex,:]], [[sample_cost_fun(explore_cost_function, bestX[dex,:], cblobs)]])
-            sample_time[jj,dex,ii] = time.time()-ts
             true_path_cost[jj,dex,ii] = calc_true_path_cost(explore_cost_function, explorer.fbFM.path, cblobs)
-            est_path_cost[jj,dex,ii],est_path_var[jj,dex,ii] = calc_est_path_cost(explorer.GP_model, mean_value, explorer.fbFM.path)
+            est_path_cost[jj,dex,ii],est_path_var[jj,dex,ii] = calc_est_path_cost(explorer.GP_model, GP_mean, explorer.fbFM.path)
 
         #print('Update map time: {0}s'.format(time.time()-ts))
         ts = time.time()
@@ -324,11 +323,9 @@ if SUMMARY_VIDEO:
     ani1.save(VID_DIR+nowstr+'.mp4', writer = 'avconv', fps=1, bitrate=1500)
 
 if GEN_PLOTS:
-    fig1, fig2, fig3, fig4 = statrun_plots.make_plots(best_path_cost, true_path_cost, est_path_cost, labels, comparison=3, cols=['cornflowerblue', 'green', 'firebrick', 'orange', 'purple', 'darkslateblue'])
-    fig1.savefig(FIG_DIR+nowstr+'C.pdf', bbox_inches='tight')
-    fig2.savefig(FIG_DIR+nowstr+'.pdf', bbox_inches='tight')
-    fig3.savefig(FIG_DIR+nowstr+'L.pdf', bbox_inches='tight')
-    fig4.savefig(FIG_DIR+nowstr+'E.pdf', bbox_inches='tight')
+    figs = statrun_plots_new.make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, labels, 
+        comparison=1, cols=['cornflowerblue', 'green', 'firebrick', 'orange', 'mediumorchid', 'lightseagreen'])
+    statrun_plots_new.save_plots(FIG_DIR, nowstr, figs)
     plt.show()
 
 

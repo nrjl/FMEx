@@ -4,23 +4,22 @@ import pickle
 plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
-def load_and_plot(DATA_DIR, nowstr, labels = ['Random', 'Max Variance', 'LCB', 'FMEx']):
+def load_and_plot(DATA_DIR, nowstr, *args, **kwargs):
     fh = open(DATA_DIR+nowstr+'.p', "rb")
     best_path_cost = pickle.load(fh)    
     true_path_cost = pickle.load(fh)    
     est_path_cost = pickle.load(fh)    
     est_path_var = pickle.load(fh)
+    sample_time = pickle.load(fh)
     fh.close()
-    fig1, fig2, fig3, fig4 = make_plots(best_path_cost, true_path_cost, est_path_cost, labels, comparison=3)
-    return fig1,fig2,fig3,fig4   
+    return make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, *args, **kwargs)
 
-def save_plots(FIG_DIR, nowstr, fig1,fig2,fig3,fig4):
-    fig1.savefig(FIG_DIR+nowstr+'C.pdf', bbox_inches='tight')
-    fig2.savefig(FIG_DIR+nowstr+'.pdf', bbox_inches='tight')
-    fig3.savefig(FIG_DIR+nowstr+'L.pdf', bbox_inches='tight')
-    fig4.savefig(FIG_DIR+nowstr+'E.pdf', bbox_inches='tight')
+def save_plots(FIG_DIR, nowstr, figs):
+    fletters = ['C','','L','E','V','T']
+    for fl,fig in zip(fletters,figs):
+        fig.savefig(FIG_DIR+nowstr+fl+'.pdf', bbox_inches='tight')
 
-def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None, comparison=3):
+def make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, labels, cols=None, comparison=3):
     fig_size = 4
     # Input arrays are [numruns, nummethods, numsamples]
     NUM_STATRUNS = true_path_cost.shape[0]
@@ -129,7 +128,14 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None,
     ax5.set_xlabel('Number of samples')
     ax5.set_ylabel('Lower path cost vs {0} (\%)'.format(labels[comparison]))
     
-    return fig1, fig2, fig3, fig4, fig5
+    fig6, ax6 = plt.subplots()
+    fig6.set_size_inches(fig_size+1, fig_size)
+    tsummary = [sample_time[:,i,:].ravel() for i in range(nmethods)]
+    ax6.boxplot(tsummary)
+    ax6.set_xticklabels(labels)
+    ax6.set_ylabel('Sample time (s)')
+    
+    return fig1, fig2, fig3, fig4, fig5, fig6
     
     
 
