@@ -14,12 +14,14 @@ def load_and_plot(DATA_DIR, nowstr, *args, **kwargs):
     fh.close()
     return make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, *args, **kwargs)
 
-def save_plots(FIG_DIR, nowstr, figs):
+def save_plots(FIG_DIR, nowstr, figs=None, DATA_DIR=None, *args, **kwargs):
+    if figs == None:
+        figs = load_and_plot(DATA_DIR, nowstr, *args, **kwargs)
     fletters = ['C','','L','E','V','T']
     for fl,fig in zip(fletters,figs):
         fig.savefig(FIG_DIR+nowstr+fl+'.pdf', bbox_inches='tight')
 
-def make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, labels, cols=None, comparison=3):
+def make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, labels, cols=None, comparison=3, n_bars = 10):
     fig_size = 4
     # Input arrays are [numruns, nummethods, numsamples]
     NUM_STATRUNS = true_path_cost.shape[0]
@@ -43,18 +45,19 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, label
     ax1.legend(loc=0, prop={'size':10})
     ax1.set_xlabel('Number of samples')
     ax1.grid(True, which='major', axis='y')
-    ax1.set_ylabel('Normalised path prediction RMS error')    
+    ax1.set_ylabel('Normalized path prediction RMS error')    
     
     fig2, ax2 = plt.subplots()
     fig2.set_size_inches(fig_size+1, fig_size)
-    sample_bars = int(NUM_SAMPLES/10)
+    sample_bars = int(NUM_SAMPLES/n_bars)
     for i in range(nmethods):
         tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in np.arange(0, NUM_SAMPLES, sample_bars)]
         tempdata = [td[~np.isnan(td)] for td in tempdata]
         pos = np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+i+1
         ax2.boxplot(tempdata, positions=pos, showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
-            boxprops={'color':cols[i]}, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
-            bootstrap=5000)  #, , medianprops={'color':cols[i]}
+            boxprops={'color':cols[i], 'facecolor':cols[i] }, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
+            bootstrap=5000, patch_artist=True)  #, , medianprops={'color':cols[i]}
+
         tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)] 
         ax2.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, [np.median(td[~np.isnan(td)]) for td in tempdata], cols[i], label=labels[i])
     ax2.set_xlim(0, nmethods*NUM_SAMPLES)
@@ -64,7 +67,7 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, label
     ax2.grid(True, which='major', axis='y')
     ax2.legend(loc=0, prop={'size':10})
     ax2.set_xlabel('Number of samples')
-    ax2.set_ylabel('Additional path cost (normalised against best path)')
+    ax2.set_ylabel('Additional path cost (normalized against best path)')
     #ax2.set_ylim(8e-3, 1e0)
 
     
@@ -104,8 +107,8 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, sample_time, label
        
         for k,td in enumerate(tempdata.transpose()):
             ax4.boxplot(td[~np.isnan(td)] , positions=[pos[k]], showbox=True, notch=True, showcaps=False, whis=0, showfliers=False, 
-            boxprops={'color':cols[i]}, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
-            bootstrap=5000)  #, , medianprops={'color':cols[i]}
+            boxprops={'color':cols[i], 'facecolor':cols[i] }, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, 
+            bootstrap=5000, patch_artist=True)  #, , medianprops={'color':cols[i]}
     ax4.set_xlim(0, nmethods*NUM_SAMPLES)
     ax4.set_xticks(np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+2)
     ax4.set_xticklabels(range(1,NUM_SAMPLES+1, sample_bars))    

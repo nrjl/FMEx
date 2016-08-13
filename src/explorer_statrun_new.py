@@ -15,18 +15,18 @@ plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
 GEN_PLOTS = True
-SAMPLING_VIDEOS = False  # Turn on video frames for each sample
+SAMPLING_VIDEOS = True  # Turn on video frames for each sample
 SUMMARY_VIDEO = True   
 
 OBSTACLES_ON = False      # Obstacles on
 TIMED_PLOTS = False     # Output (some) frames as pdf images
 
-NUM_STATRUNS = 100       # Number of statistical runs (random maps) 
+NUM_STATRUNS = 1       # Number of statistical runs (random maps) 
 NUM_SAMPLES = 50         # Number of sample points in each run
 
 FMEX_DIR = '/home/nick/Dropbox/work/FastMarching/FMEx/'
 gridsize = [100, 100]    # Grid size
-SEED_NUM = 9
+SEED_NUM = 1
 random.seed(SEED_NUM)           # Random seed
 
 field_base_val = 5.0           # Mean value of the field for GP

@@ -39,8 +39,8 @@ f0,a0 = plt.subplots(1,nmethods)
 for i in range(nmethods):
     fm_plottools.draw_grid(a0[i], g, path=models[i].path)
 
-poly_cost = fm_graphtools.polynomial_precompute_cost_modifier(g, 12, min_val=0.001)
-cost_update =poly_cost.set_update(10, 40, -1)
+poly_cost = fm_graphtools.polynomial_precompute_cost_modifier(g, 6, min_val=0.001)
+cost_update =poly_cost.set_update(25, 25, 0.01)
 
 ug = g.copy()
 ug.add_delta_costs(cost_update)
@@ -51,10 +51,10 @@ models[0] = uFM
 
 models[0].search()
 models[0].pull_path()
-models[1].update(cost_update)
-models[1].pull_path()
-models[2].update(cost_update)
-models[2].pull_path()
+#models[1].update(cost_update)
+#models[1].pull_path()
+#models[2].update(cost_update)
+#models[2].pull_path()
 
 models[3].update(cost_update, recalc_path=True)
 models[4].update_new3(cost_update, recalc_path=True)
@@ -72,7 +72,13 @@ fm_plottools.draw_grid(a1[4], ug, path=models[4].updated_path)
 #    fm_plottools.draw_costmap(a1[i], g, models[i].cost_to_come)
 #else:
 #    fm_plottools.draw_costmap(a1[i], g, models[i].path_cost)
-    
+def fmex_val(x,y,z,model):
+    model.update_new3(poly_cost.set_update(x,y,z))
+    fmval = model.updated_min_path_cost-model.min_path_cost
+    model.update_new3(poly_cost.set_update(x,y,-z))
+    fmval2 = model.updated_min_path_cost-model.min_path_cost
+    print "{0}: {1}, {2}: {3}, Total: {4}".format(z,fmval,-z,fmval2,fmval+fmval2)
+    return fmval+fmval2
 
 
 
