@@ -50,7 +50,15 @@ def make_graph_mat(graph, cost_fun, default_val=0):
                 pass
     return graph_mat
 
-def draw_grid(axes, graph, path=None, max_cost = 0, min_cost = None, cost_fun=None, *args, **kwargs):
+
+def plot_end_points(axes, x, y):
+    h_ends = list()
+    h_ends.append(axes.plot(x[0], y[0], 'r^', markersize=8)[0])
+    h_ends.append(axes.plot(x[-1], y[-1], 'ro', markersize=8 )[0])
+    return h_ends
+
+
+def draw_grid(axes, graph, path=None, max_cost=0, min_cost=None, cost_fun=None, *args, **kwargs):
     if cost_fun == None:
         cost_fun = graph.node_cost
     graph_mat = make_graph_mat(graph, cost_fun)
@@ -69,8 +77,7 @@ def draw_grid(axes, graph, path=None, max_cost = 0, min_cost = None, cost_fun=No
     if not path == None:
         x, y = zip(*path)
         mat_out.append(axes.plot(x, y, 'w-', linewidth=2.0 )[0])
-        mat_out.append(axes.plot(x[0], y[0], 'r^', markersize=8 )[0])
-        mat_out.append(axes.plot(x[-1], y[-1], 'ro', markersize=8 )[0])
+        mat_out.extend(plot_end_points(axes,x,y))
     axes.tick_params(labelbottom='on',labeltop='off')
     axes.set_xlim(extent[0],extent[1]); axes.set_ylim(extent[2],extent[3])
     return mat_out, [min_cost, max_cost]

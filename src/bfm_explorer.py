@@ -2,10 +2,17 @@ import numpy as np
 import GPy
 import fast_marcher
 import fm_graphtools
+import random
+import math
 
 def zero_fun(X):
     return 0,0
 
+def normpdf(x, mu, sigma):
+    u = (x-mu)/abs(sigma)
+    y = (1/(np.sqrt(2*np.pi)*abs(sigma)))*np.exp(-u*u/2)
+    return y
+    
 class mat_cost_function:
     def __init__(self, graph, cost_fun=zero_fun, *args, **kwargs):
         self.mat = np.zeros((graph.width, graph.height))
@@ -88,9 +95,10 @@ class fast_marching_explorer:
         self.fbFM.update_new3(cost_update,**kwargs)
         return self.fbFM.updated_min_path_cost
         
-    def add_observation(self, Xnew, Ynew):
-        self.X = np.append(self.X, Xnew, axis=0)
-        self.Y = np.append(self.Y, Ynew, axis=0)
+    def add_observation(self, Xnew=None, Ynew=None):
+        if Xnew is not None and Ynew is not None:
+            self.X = np.append(self.X, Xnew, axis=0)
+            self.Y = np.append(self.Y, Ynew, axis=0)
         self.GP_model.set_XY(self.X, self.Y-self.mean_value)
         
         self.cmodel = mat_cost_function_GP(self.GP_cost_graph, 
@@ -121,3 +129,71 @@ class fast_marching_explorer:
         # Initial search
         self.fbFM.search()
         self.fbFM.pull_path()
+        
+    def set_sampler(self, sampler=None):
+        self.non_obstacles = []
+        for x in range(self.GP_cost_graph.width):
+            for y in range(self.GP_cost_graph.height):
+                if (x,y) not in self.GP_cost_graph.obstacles:
+                    self.non_obstacles.append((x,y))
+        self.reset_sampler()
+        if sampler == 'random':
+            self.sampler = self.random_sampler
+        elif sampler == 'fmex':
+            self.sampler = self.fmex_sampler
+        elif sampler == 'maxvar':
+            self.sampler = self.maxvar_sampler
+        elif sampler == 'lcb':
+            self.sampler = self.lcb_sampler
+        else:
+            raise ValueError('Unknown sampler specified: {0}'.format(sampler))
+        
+    def reset_sampler(self):
+        self.sampler_u_min = None
+        self.best_sample = []
+    
+    def run_counted_sampler(self, n_samples=None, *args, **kwargs):
+        self.reset_sampler()
+        if n_samples is None or n_samples > len(self.non_obstacles):
+            sample_points = self.non_obstacles
+        else:
+            sample_points = random.sample(self.non_obstacles, n_samples)
+        self.sampler(sample_points, *args, **kwargs)
+        return self.best_sample
+    
+    def random_sampler(self, points):
+        self.best_sample = random.sample(points, 1)[0]
+        
+    def maxvar_sampler(self, points):
+        for x,y in points:
+            u_sample = self.GP_cost_graph.var_fun(x,y)
+            # NOTE THE MAX IS THE GOAL IN THIS CASE!!
+            if u_sample > self.sampler_u_min or self.sampler_u_min is None:
+                self.sampler_u_min = u_sample
+                self.best_sample = [x,y]
+    
+    def lcb_sampler(self, points, cweight=1.0):
+        for x,y in points:
+            u_sample = self.GP_cost_graph.cost_fun(x,y)-cweight*math.sqrt(self.GP_cost_graph.var_fun(x,y))
+            if u_sample < self.sampler_u_min or self.sampler_u_min is None:
+                self.sampler_u_min = u_sample
+                self.best_sample = [x,y]        
+        
+    def fmex_sampler(self, points, cost_obj, delta_costs, weights=None):
+        if weights == None:
+            weights = [normpdf(dc, 0.0, 1.0) for dc in delta_costs]
+            
+        for x,y in points:
+            try:
+                std = math.sqrt(self.GP_cost_graph.var_fun(x,y))
+                path_cost,sum_weight = 0.0,0.0
+                for dc,weight in zip(delta_costs,weights):
+                    path_cost += weight*self.cost_update_new(cost_obj.set_update(x, y, dc*std))
+                    sum_weight += weight
+                u_sample = path_cost/sum_weight
+                if u_sample < self.sampler_u_min or self.sampler_u_min is None:
+                    self.sampler_u_min = u_sample
+                    self.best_sample = [x,y]
+            except TypeError:
+                "Caught a TypeError at location ({0},{1})".format(x,y)
+                

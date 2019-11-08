@@ -313,11 +313,14 @@ class FastMarcher:
             self.frontier.push(self.start_node, 0+self.heuristic_fun(self.start_node, self.end_node))
         self.continue_FM_search()
             
-    def make_video(self, leading_frame=[], trailing_frame=[]):
+    def make_video(self, leading_frame=None, trailing_frame=[], show_corridor=False):
         graph_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph)
         costpath_frame = fm_plottools.draw_costmap(self.axes, self.graph, self.cost_to_come, self.path)
-        corridor_frame = fm_plottools.draw_corridor(self.axes, self.graph, self.cost_to_come, self.corridor, self.corridor_interface, self.path)
+        if show_corridor:
+            corridor_frame = fm_plottools.draw_corridor(self.axes, self.graph, self.cost_to_come, self.corridor, self.corridor_interface, self.path)
         path_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph, self.path)
+        if leading_frame is None:
+            leading_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph)
         
         video_frames = []
         frame_hold = int(len(self.image_frames)/8)
@@ -326,7 +329,8 @@ class FastMarcher:
         for ii in range(frame_hold): video_frames.append(graph_frame)
         video_frames.extend(self.image_frames)
         for ii in range(frame_hold): video_frames.append(costpath_frame)
-        for ii in range(frame_hold): video_frames.append(corridor_frame)
+        if show_corridor:
+            for ii in range(frame_hold): video_frames.append(corridor_frame)
         for ii in range(frame_hold): video_frames.append(path_frame)
         if len(trailing_frame) > 0:
             for ii in range(frame_hold): video_frames.append(trailing_frame)
@@ -574,11 +578,12 @@ class FullBiFastMarcher:
     def search(self):
         self.FastMarcherSG.search()
         self.FastMarcherGS.search()
-        self.min_path_cost = self.FastMarcherSG.cost_to_come[self.end_node]
+        self.min_path_cost = () #self.FastMarcherSG.cost_to_come[self.end_node]
         self.path_cost = copy.copy(self.FastMarcherSG.cost_to_come)
         for node in self.path_cost:
             self.path_cost[node] += self.FastMarcherGS.cost_to_come[node]
-            self.min_path_cost = min(self.min_path_cost,self.path_cost[node])
+            if node != self.end_node and node != self.start_node:
+                self.min_path_cost = min(self.min_path_cost,self.path_cost[node])
         #self.FastMarcherGS.set_goal(self.FastMarcherSG.start_node)
         #self.FastMarcherSG.set_goal(self.FastMarcherGS.start_node)
         self.full_search_nodes = self.FastMarcherSG.search_nodes+self.FastMarcherGS.search_nodes

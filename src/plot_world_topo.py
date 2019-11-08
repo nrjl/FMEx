@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import pickle as pickle
 
-topo_file = '../data/topo.p'
-downsample_degree = 10
+topo_file = '../data/iceland_uk.p' #mediterranean
+downsample_degree = 5
 
 def block_reduce(mat, degree):
     nx,ny = mat.shape
@@ -34,10 +34,10 @@ try:
 except IOError:
     print "Topography file {0} not found, creating new...".format(topo_file)
     # Definine the domain of interest
-    minlat = 54.0
-    maxlat = 65.0
-    minlon = -24.0
-    maxlon = -4.0
+    minlat = 54.0#29.0 #
+    maxlat = 65.0#45.0 #
+    minlon = -24.0#3.0 #
+    maxlon = -4.0#38.0 #
         
     # Read data from: http://coastwatch.pfeg.noaa.gov/erddap/griddap/usgsCeSrtm30v6.html
     response = urllib2.urlopen('http://coastwatch.pfeg.noaa.gov/erddap/griddap/usgsCeSrtm30v6.csv?topo[(' \

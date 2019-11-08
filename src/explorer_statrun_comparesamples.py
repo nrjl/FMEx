@@ -14,19 +14,19 @@ import statrun_plots_new
 plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
-GEN_PLOTS = True        # Enable all plotting
-TIMED_PLOTS = True      # Output (some) frames as pdf images
+GEN_PLOTS = False        # Enable all plotting
+TIMED_PLOTS = False      # Output (some) frames as pdf images
 SAMPLING_VIDEOS = False # Turn on video frames for each sample
 SUMMARY_VIDEO = False    # Frame at the end of each statrun
 
-OBSTACLES_ON = True      # Obstacles on
+OBSTACLES_ON = False      # Obstacles on
 
-NUM_STATRUNS = 100       # Number of statistical runs (random maps) 
+NUM_STATRUNS = 20       # Number of statistical runs (random maps) 
 NUM_SAMPLES = 80         # Number of sample points in each run
 
 FMEX_DIR = '/home/nick/Dropbox/work/FastMarching/FMEx/'
 gridsize = [100, 100]    # Grid size
-SEED_NUM = 9
+SEED_NUM = 5
 random.seed(SEED_NUM)           # Random seed
 
 field_base_val = 5.0           # Mean value of the field for GP
@@ -36,20 +36,30 @@ peak_range = [-3.0,8.0]    # Low and high peak values for map blobs
 spread_range = [5,12]      # Low and high spread distances for map blobs
 poly_update_size = 15
 
-GP_l=10.0; GP_sv=15.0; GP_sn=0.1
+GP_l=10.0; GP_sv=25.0; GP_sn=0.1
 OBS_STD = 0.05
 
-n_sample_locations = 500
-n_fmex_samples = 50
+n_fmexbase_samples = 10
 
-delta_costs = [-1.0, 1.0]   # How many stds above and below for FM sampling
-delta_costs2 = [-3.0, -2.0, -1.0, 1.0, 2.0, 3.0]
-n_random_samples = 6
+fm_1sigma = [-1.0, 1.0]   # How many stds above and below for FM sampling
+fm_3sigma = [-3.0, -2.0, -1.0, 1.0, 2.0, 3.0]
+fm_1sigma_w = [bfm_explorer.normpdf(x, 0.0, 1.0) for x in fm_1sigma]
+fm_3sigma_w = [bfm_explorer.normpdf(x, 0.0, 1.0) for x in fm_3sigma]
+n_MC_samples = 6
 
-nmethods = 6
 plot_timer = 40
-ex_plot_index = [1,2,4]
-labels = ['Random', 'Max Variance', 'LCB', 'FMEx $1\sigma$', 'FMEx $3\sigma$', 'FMEx MC{0:d}'.format(n_random_samples)]
+
+
+labels = ['FMEx $1\sigma$ ({0})'.format(n_fmexbase_samples), 
+        'FMEx $1\sigma$ ({0})'.format(3*n_fmexbase_samples), 
+        'FMEx $1\sigma$ ({0})'.format(6*n_fmexbase_samples), 
+        'FMEx $3\sigma$ ({0})'.format(n_fmexbase_samples), 
+        'FMEx $3\sigma$ ({0})'.format(3*n_fmexbase_samples),  
+        'FMEx $3\sigma$ ({0})'.format(6*n_fmexbase_samples)]     
+methods = ['fmex','fmex','fmex','fmex','fmex','fmex']
+ex_plot_index = [1,3,5]
+
+nmethods = len(methods)
 
 num_obstacles = 10       # Total number of obstacles
 obstacle_size = 10       # Obstacle size
@@ -58,47 +68,27 @@ DATA_DIR = FMEX_DIR+'data/'
 VID_DIR = FMEX_DIR+'vid/'
 FIG_DIR = FMEX_DIR+'fig/'
 
-my_blobs = [[30, 20, 16, 10], [60, 40,  6, 15], [10, 40, 32, 12], [60, 5, 15, 9],
-            [25, 35,  8, 15], [70, 30, 12, 12], [80, 40, 16, 15], [5, 60, 30, 7],
-            [30, 70, 32, 18], [90, 10, 20, 15]]
-            
-triple_path_blobs = [[35,15,20,-2],[80,30,17,-2],[60,35,12,5],[40,55,8,6],
-                     [20,45,8,-1.0],[75,75,5,5],[85,70,5,-2],[55,75,6,-1.5],
-                     [10,90,6,-1]]
-
-def normpdf(x, mu, sigma):
-    u = (x-mu)/abs(sigma)
-    y = (1/(np.sqrt(2*np.pi)*abs(sigma)))*np.exp(-u*u/2)
-    return y
-    
-def explore_cost_function(a, b, blobs):
+def blobby_cost_function(a, b, blobs):
     # blobs are defined by [xloc, yloc, spread, peakval]
-    # blobs = my_blobs
     cost = field_base_val
     for i in range(np.shape(blobs)[0]):
         cost += blobs[i][3]*math.exp(-math.sqrt((a-blobs[i][0])**2 + (b-blobs[i][1])**2)/blobs[i][2])
     return cost
     
+def gen_blobs(n_blobs):
+    blobs = []
+    for ii in range(n_blobs):
+        xb = random.uniform(-10,true_g.width+10)
+        yb = random.uniform(-10,true_g.height+10)
+        rangeb = random.uniform(spread_range[0], spread_range[1])
+        peakb = random.uniform(peak_range[0], peak_range[1])
+        blobs.append([xb,yb, rangeb, peakb]) 
+    return blobs
+    
 def sample_cost_fun(cf, x, blobs):
     y = cf(x[0], x[1], blobs) + random.normalvariate(0, OBS_STD)
     return max(0, y)
-
-def sample_value(fm, pc, x, y, delta_costs):
-    std = math.sqrt(fm.GP_cost_graph.var_fun(x,y))
-    cc = 0
-    for dc in delta_costs:
-        cc += fm.cost_update(pc.set_update(x, y, dc*std))
-    return cc
-    
-def sample_value_new(fm, pc, x, y, delta_costs):
-    std = math.sqrt(fm.GP_cost_graph.var_fun(x,y))
-    path_cost,sum_weight = 0,0
-    for dc in delta_costs:
-        weight = normpdf(dc, 0.0, 1.0)
-        path_cost += weight*fm.cost_update_new(pc.set_update(x, y, dc*std))
-        sum_weight += weight
-    return path_cost/sum_weight
-    
+   
 def calc_true_path_cost(cost_fun, path, *args):
     true_cost = 0
     for i in range(len(path)-1):
@@ -118,9 +108,6 @@ def calc_est_path_cost(gp_model, mean_val, path):
         sum_var += (var_cost[i] + var_cost[i+1])/2*d  
     return sum_cost, sum_var
     
-def check_row(mat, row):
-    return np.equal(mat,row).all(1).any()
-
 def create_cost_plot(graph=None,labels=None):
     fig, ax = plt.subplots(2, 2)
     if graph != None:
@@ -156,12 +143,13 @@ def plot_final_paths(ax, true_g, true_path, models, true_costs=None, est_costs=N
             graph_frame.append(axax[ii].text(80,3,'{0:0.2f}'.format(cost),fontsize='9.0',color='maroon',bbox=dict(facecolor='whitesmoke', alpha=0.8)))
     return graph_frame
 
-def fmex_constructor(gridsize, start_node, end_node, X, Y, mean_value, obstacles):
-    fmex = bfm_explorer.fast_marching_explorer(gridsize, start_node, end_node, X, Y, mean_value=mean_value, obs=obstacles,
+def fmex_constructor(g, start_node, end_node, X, Y, sample_method):
+    fmex = bfm_explorer.fast_marching_explorer([g.width,g.height], start_node, end_node, X, Y, mean_value=GP_mean, obs=g.obstacles,
         GP_l=GP_l, GP_sv=GP_sv, GP_sn=GP_sn)
+    fmex.set_sampler(sample_method)
     fmex.search()
     return fmex
-
+    
 best_path_cost = np.zeros((1, NUM_STATRUNS), float)
 true_path_cost = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
 est_path_cost = np.zeros((NUM_STATRUNS, nmethods, NUM_SAMPLES), float)
@@ -193,52 +181,32 @@ fh.write("Random seed: {0}\n".format(SEED_NUM))
 fh.write("Field base value: {0}\n".format(field_base_val))
 fh.write("GP mean: {0}\n".format(GP_mean))
 fh.write("Map blobs: {0}, Peak range: {1}, Spread range: {2}\n".format(num_blobs, peak_range, spread_range))
-fh.write("Delta costs: {0}, {1}\n".format(delta_costs, delta_costs2))
+fh.write("Delta costs: {0}, {1}\n".format(fm_1sigma, fm_3sigma))
 fh.write("GP: l={0}, s_v={1}, s_n={2}\n".format(GP_l, GP_sv, GP_sn))
-fh.write("n_sample_locations: {0}\n".format(n_sample_locations))
-fh.write("n_fmex_samples: {0}\n".format(n_fmex_samples))
+fh.write("n_fmex_samples: {0},{1},{2}\n".format(n_fmexbase_samples,3*n_fmexbase_samples,6*n_fmexbase_samples))
 fh.close()
 print 'NOWSTR: {0}'.format(nowstr)
-
-jj= 0
-
-def random_sampler(explorer, rand_samples, *arg):
-    return rand_samples[0]
-    
-def maxvar_sampler(explorer, rand_samples, *arg):
-    tvar = [explorer.GP_cost_graph.var_fun(x[0],x[1]) for x in rand_samples]
-    return rand_samples[np.argmax(tvar)] 
-
-def lcb_sampler(explorer, rand_samples,*arg):
-    tvar = [explorer.GP_cost_graph.cost_fun(x[0],x[1])-math.sqrt(explorer.GP_cost_graph.var_fun(x[0],x[1])) for x in rand_samples]
-    return rand_samples[np.argmin(tvar)]      
-    
-def fmex_sampler(explorer, rand_samples, cost_obj, delta_costs):
-    E_path_cost = [sample_value_new(explorer, cost_obj, x[0],x[1], delta_costs) for x in rand_samples]
-    return rand_samples[np.argmin(E_path_cost)]       
 
 current_true_costs = np.zeros(len(ex_plot_index)+1)
 current_est_costs = np.zeros(len(ex_plot_index))
 
-#for jj in range(NUM_STATRUNS):
+true_g = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1])
+poly_cost_obj = fm_graphtools.polynomial_precompute_cost_modifier(true_g, poly_update_size, min_val=0.001)
+new_obs = []
+
+jj = 0
 while jj < NUM_STATRUNS:
     t0 = time.time()  
     sampling_frames=[]
-    cblobs = []
-    cblobs = triple_path_blobs
-    for ii in range(num_blobs):
-        cblobs.append([random.uniform(-10,gridsize[0]+10), random.uniform(-10,gridsize[1]+10), 
-            random.uniform(spread_range[0], spread_range[1]), random.uniform(peak_range[0], peak_range[1])])
     
-    true_g = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1], explore_cost_function, [])
-    
+    # Build new map (randomly generate Gaussian blobs and obstacles)
+    cblobs = gen_blobs(num_blobs)    
+    explorer_cost = bfm_explorer.mat_cost_function(true_g, blobby_cost_function, cblobs)
     if OBSTACLES_ON:
-        true_g.update_obstacles(fm_plottools.generate_obstacles(true_g, num_obstacles, obstacle_size))
-    explorer_cost = bfm_explorer.mat_cost_function(true_g, explore_cost_function, cblobs)
-    true_g.cost_fun = explorer_cost.calc_cost
-        
-    poly_cost_obj = fm_graphtools.polynomial_precompute_cost_modifier(true_g, poly_update_size, min_val=0.001)
-        
+        new_obs = fm_plottools.generate_obstacles(true_g, num_obstacles, obstacle_size)
+
+    true_g.reset(cost_fun=explorer_cost.calc_cost, obstacles=new_obs)
+         
     start_node = (3,3)
     while start_node in true_g.obstacles:
         start_node = (start_node[0]+1, start_node[1])
@@ -256,7 +224,7 @@ while jj < NUM_STATRUNS:
         print "No map solution, moving to next map".format(jj)
         continue
     tFM.pull_path()
-    best_path_cost[0][jj] = calc_true_path_cost(explore_cost_function, tFM.path, cblobs)
+    best_path_cost[0][jj] = calc_true_path_cost(blobby_cost_function, tFM.path, cblobs)
     current_true_costs[0] = best_path_cost[0][jj]
         
     # Create initial GP    
@@ -264,38 +232,30 @@ while jj < NUM_STATRUNS:
     Xshape = X.shape
     Y = np.zeros((Xshape[0], 1))
     for ii in range(Xshape[0]):
-        Y[ii] = sample_cost_fun(explore_cost_function, X[ii,:], cblobs)
+        Y[ii] = sample_cost_fun(blobby_cost_function, X[ii,:], cblobs)
     
     # Create BiFM explorer objects for each sampling strategy
     t0 = time.time()
-    explorers = [fmex_constructor(gridsize, start_node, end_node, X, Y, GP_mean, true_g.obstacles) for nn in range(nmethods)]
+    explorers = [fmex_constructor(true_g, start_node, end_node, X, Y, method) for method in methods]
     #print "Construction took {0}s".format(time.time()-t0)
     
     ## UPDATES!
     
     for ii in range(NUM_SAMPLES):        
-       
-        rand_samples = []
-        while len(rand_samples) < n_sample_locations:
-            tx = random.choice(range(gridsize[0]))
-            ty = random.choice(range(gridsize[1]))
-            if ((tx,ty) not in true_g.obstacles):
-                rand_samples.append((tx,ty))
-        
         bestX = np.zeros((nmethods,2))
 
         # Run samplers:
-        ts = time.time(); bestX[0,:] = random_sampler(explorers[0], rand_samples); sample_time[jj,0,ii] = time.time()-ts
-        ts = time.time(); bestX[1,:] = maxvar_sampler(explorers[1], rand_samples); sample_time[jj,1,ii] = time.time()-ts
-        ts = time.time(); bestX[2,:] = lcb_sampler(explorers[2], rand_samples); sample_time[jj,2,ii] = time.time()-ts
-        ts = time.time(); bestX[3,:] = fmex_sampler(explorers[3], rand_samples[0:n_fmex_samples], poly_cost_obj, delta_costs); sample_time[jj,3,ii] = time.time()-ts
-        ts = time.time(); bestX[4,:] = fmex_sampler(explorers[4], rand_samples[0:n_fmex_samples], poly_cost_obj, delta_costs2); sample_time[jj,4,ii] = time.time()-ts
-        ts = time.time(); bestX[5,:] = fmex_sampler(explorers[5], rand_samples[0:n_fmex_samples], poly_cost_obj, np.random.normal(loc=0, scale=1.0, size=n_random_samples)); sample_time[jj,5,ii] = time.time()-ts
-           
-        for dex, explorer in enumerate(explorers):
-            explorer.add_observation([bestX[dex,:]], [[sample_cost_fun(explore_cost_function, bestX[dex,:], cblobs)]])
-            true_path_cost[jj,dex,ii] = calc_true_path_cost(explore_cost_function, explorer.fbFM.path, cblobs)
-            est_path_cost[jj,dex,ii],est_path_var[jj,dex,ii] = calc_est_path_cost(explorer.GP_model, GP_mean, explorer.fbFM.path)
+        for kk,explorer in enumerate(explorers):
+            ns_pos = (3**(kk%3))*n_fmexbase_samples
+            if kk<3:
+                fms,fmw = fm_1sigma, fm_1sigma_w
+            else:
+                fms,fmw = fm_3sigma, fm_3sigma_w
+            ts = time.time(); bestX[kk,:] = explorer.run_counted_sampler(ns_pos, cost_obj=poly_cost_obj, delta_costs=fms, weights=fmw); sample_time[jj,kk,ii] = time.time()-ts
+            explorer.add_observation([bestX[kk,:]], [[sample_cost_fun(blobby_cost_function, bestX[kk,:], cblobs)]])
+            true_path_cost[jj,kk,ii] = calc_true_path_cost(blobby_cost_function, explorer.fbFM.path, cblobs)
+            est_path_cost[jj,kk,ii],est_path_var[jj,kk,ii] = calc_est_path_cost(explorer.GP_model, GP_mean, explorer.fbFM.path)
+            #print "FMS: {0}, FMW: {1}, NS: {2}".format(fms,fmw,ns_pos)
 
         #print('Update map time: {0}s'.format(time.time()-ts))
         ts = time.time()
@@ -353,23 +313,3 @@ if GEN_PLOTS:
         comparison=1, cols=['cornflowerblue', 'green', 'firebrick', 'orange', 'mediumorchid', 'lightseagreen'])
     statrun_plots_new.save_plots(FIG_DIR, nowstr, figs)
     plt.show()
-
-
-#ax2 = plt.subplot()
-#cols = ['b', 'g', 'k']
-#labels = ['Random', 'Max Variance', 'Fast March']
-#for i in range(3):
-#    tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in np.append(np.arange(0, NUM_SAMPLES, 3), NUM_SAMPLES-1)]
-#    pos = np.append(np.arange(0,NUM_SAMPLES*4,12)+i+1, NUM_SAMPLES*4-2)
-#    ax2.boxplot(tempdata, positions=pos, medianprops={'color':'r'}, 
-#        showbox=True, boxprops={'color':cols[i]}, notch=True, showcaps=False, showfliers=False, 
-#        whis=0, whiskerprops={'color':cols[i]}, flierprops={'color':cols[i]}, bootstrap=5000)  #, 
-#    tempdata = [np.divide(true_path_cost[:,i,j], best_path_cost)-1 for j in range(0, NUM_SAMPLES)]    
-#    ax2.plot(np.arange(0,NUM_SAMPLES*4,4)+i+1, np.median(tempdata, axis=2), cols[i], label=labels[i])
-#ax2.set_xlim(0, 4*NUM_SAMPLES)
-#ax2.set_xticks(np.arange(0,NUM_SAMPLES*4,4)+2)
-#ax2.set_xticklabels(np.arange(NUM_SAMPLES)+1)
-#ax2.set_yscale('log')
-#ax2.legend()
-#
-#plt.show()

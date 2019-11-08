@@ -235,6 +235,17 @@ class CostmapGridFixedObs(CostmapGrid):
         self.fixed_neighbours = fixed_neighbours
         if self.fixed_neighbours == None:
             self.rebuild_neighbours()
+            
+    def reset(self, cost_fun=None, obstacles=None, bl_corner=None, delta=None):
+        if cost_fun is not None:
+            self.cost_fun = cost_fun
+        if obstacles is not None:
+            self.obstacles = obstacles
+        if bl_corner is not None:
+            self.bl_corner = bl_corner
+        if delta is not None:
+            self.delta = self.delta
+        self.rebuild_neighbours()
              
     def copy(self):
         return CostmapGridFixedObs(self.width, self.height, cost_fun=self.cost_fun, obstacles=self.obstacles, 

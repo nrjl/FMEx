@@ -50,7 +50,7 @@ def sample_value_new(fm, pc, x, y, delta_costs):
         cc += fm.cost_update_new(pc.set_update(x, y, dc*std),loc=[x,y])
     return cc
     
-MAKE_VIDEO = False
+MAKE_VIDEO = True
 MAKE_PICTURES=True
 gridsize = [100, 100]
 mean_value = 5.0
