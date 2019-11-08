@@ -3,11 +3,9 @@ import matplotlib.pyplot as plt
 import random
 import time
 import copy
-import fast_marcher
 import pickle
 
-import fm_graphtools
-import fm_plottools
+from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 # from dijkstra_search import dijkstra_search, pull_path
 
 nowstr = time.strftime("%Y_%m_%d-%H_%M")

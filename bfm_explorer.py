@@ -1,7 +1,6 @@
 import numpy as np
 import GPy
-import fast_marcher
-import fm_graphtools
+from fm_tools import fast_marcher, fm_graphtools
 import random
 import math
 

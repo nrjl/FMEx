@@ -2,11 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import copy
-import fast_marcher
 import pickle
 
-import fm_graphtools
-import fm_plottools
+from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 
 gridsize = [100, 100]
 obs = fm_plottools.generate_obstacles(gridsize[0], gridsize[1], 100, 10)

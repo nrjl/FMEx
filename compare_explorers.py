@@ -5,10 +5,7 @@ import random
 import time
 import math
 import bfm_explorer
-import fast_marcher
-import fm_graphtools
-import fm_plottools
-
+from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 NUM_SAMPLES = 20
             
 gridsize = [100, 101]

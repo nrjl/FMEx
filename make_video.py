@@ -3,10 +3,7 @@ import matplotlib.animation as animation
 import random
 import time
 import copy
-import fast_marcher
-
-import fm_graphtools
-import fm_plottools
+from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 # from dijkstra_search import dijkstra_search, pull_path
 
 VID_DIR = '/home/nick/Dropbox/work/FastMarching/vid/'

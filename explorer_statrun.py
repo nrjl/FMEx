@@ -3,9 +3,7 @@ import random
 import time
 import math
 import bfm_explorer
-import fast_marcher
-import fm_graphtools
-import fm_plottools
+from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pickle

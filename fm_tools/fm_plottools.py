@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import random
-plt.rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+#plt.rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 plt.rc('text', usetex=True)
 
 def init_fig(graph=None, **kwargs):
@@ -82,7 +82,7 @@ def draw_grid(axes, graph, path=None, max_cost=0, min_cost=None, cost_fun=None, 
     axes.set_xlim(extent[0],extent[1]); axes.set_ylim(extent[2],extent[3])
     return mat_out, [min_cost, max_cost]
     
-def draw_costmap(axes, graph, cost_to_come, path=[], start_nodes=None):
+def draw_costmap(axes, graph, cost_to_come, path=None, start_nodes=None):
     cost_mat = make_graph_mat(graph, lambda x: cost_to_come[x[0],x[1]], default_val=-1)
     for node in graph.obstacles:
         xi,yi = graph.graph_to_index(node)
@@ -97,7 +97,7 @@ def draw_costmap(axes, graph, cost_to_come, path=[], start_nodes=None):
         norm = matplotlib.colors.Normalize(vmin=0, vmax=cost_mat.max(), clip=False))]
     if start_nodes != None:
         mat_out.append(axes.plot(start_nodes[0], start_nodes[1],'r^', markersize=8 )[0])
-    if len(path) > 0:
+    if path is not None and (len(path) > 0):
         x, y = zip(*path)
         mat_out.append(axes.plot(x, y, 'w-', linewidth=2.0 )[0])
     axes.tick_params(labelbottom='on',labeltop='off')

@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.basemap import Basemap
 import pickle as pickle
-import fm_graphtools
-import fm_plottools
-import fast_marcher
+import random
+import time
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 #import bfm_explorer
 import GPy
 import time

@@ -7,9 +7,7 @@ import math
 import copy
 import GPy
 # from dijkstra_search import dijkstra_search, pull_path
-import fast_marcher
-import fm_graphtools
-import fm_plottools
+from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 
 plt.rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 plt.rc('text', usetex=True)

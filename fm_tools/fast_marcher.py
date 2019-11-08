@@ -26,6 +26,9 @@ def bFM_reset(FM_new, FM_old, graph):
 
             
 class FastMarcher:
+    start_nodes = []
+    end_node = None
+    path = None
     adjacency_list = {(-1,0): [(0,1), (0,-1)], (1,0): [(0,1), (0,-1)], 
         (0,-1): [(1,0), (-1,0)], (0,1):  [(1,0), (-1,0)]}
         
@@ -45,7 +48,10 @@ class FastMarcher:
         self.graph = graph
         
     def set_start(self, node):
-        self.start_node = node
+        self.start_nodes = [node]
+
+    def set_start_list(self, nodes):
+        self.start_nodes = nodes
         
     def set_goal(self, node):
         self.end_node = node
@@ -66,10 +72,12 @@ class FastMarcher:
         # Nodes in the queue are active but not accepted yet
         self.frontier = fm_graphtools.PriorityQueue([])
         self.frontier.clear()
-        self.frontier.push(self.start_node, 0+self.heuristic_fun(self.start_node, self.end_node))
+        self.parent_list = {}
+        for node in self.start_nodes:
+            self.frontier.push(node, self.heuristic_fun(node, self.end_node))
+            self.parent_list[node] = [node]
         self.cost_to_come = {}
-        self.parent_list = {self.start_node:[self.start_node]}       
-        
+
         self.continue_FM_search()
         self.create_child_list()
 
@@ -114,7 +122,9 @@ class FastMarcher:
                     self.parent_list[n_node] = parent_update
                     
             if self.image_frames != 0 and u_A > self.plot_cost :            
-                self.image_frames.append(fm_plottools.draw_costmap(self.axes, self.graph, self.cost_to_come, start_nodes=self.start_node))
+                self.image_frames.append(
+                    fm_plottools.draw_costmap(self.axes, self.graph,
+                                              self.cost_to_come))
                 self.plot_cost += self.delta_plot
                 
             if (c_node == self.end_node) or (self.frontier.count() <= 0):
@@ -131,7 +141,7 @@ class FastMarcher:
     def pull_path(self, end_node=None):
         if end_node == None:
             end_node = self.end_node
-        self.path = self.path_source_to_point(self.start_node, end_node)
+        self.path = self.path_source_to_point(self.start_nodes[0], end_node)
 
     def path_source_to_point(self, source, target, cost_to_come=None):
         if cost_to_come==None:
@@ -202,7 +212,7 @@ class FastMarcher:
                
     def find_corridor(self):
         self.corridor, self.corridor_interface = \
-            self.find_upwind(self.start_node, self.end_node)
+            self.find_upwind(self.start_nodes[0], self.end_node)
             
     def find_upwind(self, source, target):
         nodes_popped = 0
@@ -310,7 +320,8 @@ class FastMarcher:
         
         # If everything was deleted, push start node back onto queue
         if not self.cost_to_come:
-            self.frontier.push(self.start_node, 0+self.heuristic_fun(self.start_node, self.end_node))
+            for node in self.start_nodes:
+                self.frontier.push(node, 0+self.heuristic_fun(node, self.end_node))
         self.continue_FM_search()
             
     def make_video(self, leading_frame=None, trailing_frame=[], show_corridor=False):

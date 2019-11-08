@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-import nice_plot_colors
+from plot_tools import nice_plot_colors
 from cycler import cycler
 
 plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
