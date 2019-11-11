@@ -324,27 +324,40 @@ class FastMarcher:
                 self.frontier.push(node, 0+self.heuristic_fun(node, self.end_node))
         self.continue_FM_search()
             
-    def make_video(self, leading_frame=None, trailing_frame=[], show_corridor=False):
+    def make_video(self, leading_frame=None, trailing_frame=[], show_corridor=False, show_path=True, frame_hold=None):
         graph_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph)
         costpath_frame = fm_plottools.draw_costmap(self.axes, self.graph, self.cost_to_come, self.path)
         if show_corridor:
             corridor_frame = fm_plottools.draw_corridor(self.axes, self.graph, self.cost_to_come, self.corridor, self.corridor_interface, self.path)
-        path_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph, self.path)
+        if show_path:
+            path_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph, self.path)
         if leading_frame is None:
             leading_frame, TEMP = fm_plottools.draw_grid(self.axes, self.graph)
         
         video_frames = []
-        frame_hold = int(len(self.image_frames)/8)
+        if frame_hold is None:
+            frame_hold = int(len(self.image_frames)/8)
         if len(leading_frame) > 0:
-            for ii in range(frame_hold): video_frames.append(leading_frame)
-        for ii in range(frame_hold): video_frames.append(graph_frame)
+            for ii in range(frame_hold-1):
+                video_frames.append(leading_frame)
+        for ii in range(frame_hold-1):
+            video_frames.append(graph_frame)
+
+        # Main search frames from fast_marcher
         video_frames.extend(self.image_frames)
-        for ii in range(frame_hold): video_frames.append(costpath_frame)
+
+        for ii in range(frame_hold - 1):
+            video_frames.append(costpath_frame)
+
         if show_corridor:
-            for ii in range(frame_hold): video_frames.append(corridor_frame)
-        for ii in range(frame_hold): video_frames.append(path_frame)
+            for ii in range(frame_hold-1):
+                video_frames.append(corridor_frame)
+        if show_path:
+            for ii in range(frame_hold-1):
+                video_frames.append(path_frame)
         if len(trailing_frame) > 0:
-            for ii in range(frame_hold): video_frames.append(trailing_frame)
+            for ii in range(frame_hold-1):
+                video_frames.append(trailing_frame)
         return video_frames
         
     def make_pictures(self, fig_dir):

@@ -5,15 +5,15 @@ import matplotlib.animation as animation
 from fm_tools import fast_marcher, fm_graphtools, fm_plottools
 from cost_functions import blobby_cost
 
-# SEED_NUM = 1              # If you want a fixed map set this
-# random.seed(SEED_NUM)           # Random seed
+SEED_NUM = 1              # If you want a fixed map set this
+random.seed(SEED_NUM)           # Random seed
 
 # Problem setup - generate a random field of Gaussian blobs as the cost field
 plot_timer = 10
-gridsize = [100, 100]    # Grid size
+gridsize = [150, 150]    # Grid size
 
 num_obstacles = 30       # Total number of obstacles
-obstacle_size = 10       # Obstacle size
+obstacle_size = 20       # Obstacle size
 
 
 # Build new map (randomly generate Gaussian blobs and obstacles)
@@ -43,8 +43,8 @@ t_searchFM = time.time()-t0
 print "Search time: {0}s".format(t_searchFM)
 
 # Plot animation because cool.
-aniFM = animation.ArtistAnimation(h_fig, fm_object.make_video(), interval=10, repeat_delay=2000)
-aniFM.save('vid/FM_{0}.ogg'.format(time.strftime("%Y_%m_%d-%H_%M")),
+aniFM = animation.ArtistAnimation(h_fig, fm_object.make_video(frame_hold=2, show_path=False), interval=10, repeat_delay=2000)
+aniFM.save('vid/FM_plot.ogg'.format(time.strftime("%Y_%m_%d-%H_%M")),
            writer='ffmpeg', fps=10, codec='libtheora', bitrate=8000)
 plt.show()
 
