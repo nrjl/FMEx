@@ -165,7 +165,7 @@ fh.write("Map blobs: {0}, Peak range: {1}, Spread range: {2}\n".format(num_blobs
 fh.write("Delta costs: {0}, {1}\n".format(delta_costs, delta_costs2))
 fh.write("GP: l={0}, s_v={1}, s_n={2}\n".format(GP_l, GP_sv, GP_sn))
 fh.close()
-print 'NOWSTR: {0}'.format(nowstr)
+print('NOWSTR: {0}'.format(nowstr))
 
 jj= 0
 
@@ -202,7 +202,7 @@ while jj < NUM_STATRUNS:
     try:
         tFM.search()
     except KeyError:
-        print "No map solution, moving to next map".format(jj)
+        print("No map solution, moving to next map".format(jj))
         continue
     tFM.pull_path()
     best_path_cost[0][jj] = calc_true_path_cost(explore_cost_function, tFM.path, cblobs)
@@ -227,8 +227,8 @@ while jj < NUM_STATRUNS:
     for ii in range(NUM_SAMPLES):        
         # Random sampler:
         while True:
-            tx = random.choice(range(gridsize[0]))
-            ty = random.choice(range(gridsize[1]))
+            tx = random.choice(list(range(gridsize[0])))
+            ty = random.choice(list(range(gridsize[1])))
             if ((tx,ty) not in true_g.obstacles): break
         random_sampling_explorer.add_observation([[tx,ty]], [[sample_cost_fun(explore_cost_function, [tx,ty], cblobs)]])
         true_path_cost[jj,0,ii] = calc_true_path_cost(explore_cost_function, random_sampling_explorer.fbFM.path, cblobs)
@@ -241,8 +241,8 @@ while jj < NUM_STATRUNS:
         
         rand_samples = []
         while len(rand_samples) < 50:
-            tx = random.choice(range(gridsize[0]))
-            ty = random.choice(range(gridsize[1]))
+            tx = random.choice(list(range(gridsize[0])))
+            ty = random.choice(list(range(gridsize[1])))
             if ((tx,ty) not in true_g.obstacles):
                 rand_samples.append((tx,ty))
         
@@ -315,9 +315,9 @@ while jj < NUM_STATRUNS:
     if sampling_frames: 
         for item in sampling_frames[-1]:
             item.remove()
-    print "STAT RUN {k}: Best: {cB:.2f}, Random:{cR:.2f}, MaxVar: {cV:.2f}, LCB: {cF:.2f}, FM2: {cF2:.2f}. Total {t:.2f}s".format(
+    print("STAT RUN {k}: Best: {cB:.2f}, Random:{cR:.2f}, MaxVar: {cV:.2f}, LCB: {cF:.2f}, FM2: {cF2:.2f}. Total {t:.2f}s".format(
         k=jj, cB=best_path_cost[0][jj], cR=np.mean(true_path_cost[jj,0,:]), cV=np.mean(true_path_cost[jj,1,:]), 
-        cF=np.mean(true_path_cost[jj,2,:]), cF2=np.mean(true_path_cost[jj,3,:]), t=time.time()-t0)
+        cF=np.mean(true_path_cost[jj,2,:]), cF2=np.mean(true_path_cost[jj,3,:]), t=time.time()-t0))
     jj += 1
 
 fh = open(DATA_DIR+nowstr+".p", "wb" )

@@ -196,7 +196,7 @@ fh.write("GP: l={0}, s_v={1}, s_n={2}\n".format(GP_l, GP_sv, GP_sn))
 fh.write("n_sample_locations: {0}\n".format(n_sample_locations))
 fh.write("n_fmex_samples: {0}\n".format(n_fmex_samples))
 fh.close()
-print 'NOWSTR: {0}'.format(nowstr)
+print('NOWSTR: {0}'.format(nowstr))
 
 jj= 0
 
@@ -251,7 +251,7 @@ while jj < NUM_STATRUNS:
     try:
         tFM.search()
     except KeyError:
-        print "No map solution, moving to next map".format(jj)
+        print("No map solution, moving to next map".format(jj))
         continue
     tFM.pull_path()
     best_path_cost[0][jj] = calc_true_path_cost(explore_cost_function, tFM.path, cblobs)
@@ -275,8 +275,8 @@ while jj < NUM_STATRUNS:
        
         rand_samples = []
         while len(rand_samples) < n_sample_locations:
-            tx = random.choice(range(gridsize[0]))
-            ty = random.choice(range(gridsize[1]))
+            tx = random.choice(list(range(gridsize[0])))
+            ty = random.choice(list(range(gridsize[1])))
             if ((tx,ty) not in true_g.obstacles):
                 rand_samples.append((tx,ty))
         
@@ -328,10 +328,10 @@ while jj < NUM_STATRUNS:
     if sampling_frames: 
         for item in sampling_frames[-1]:
             item.remove()
-    print "STAT RUN {k}: Best: {cB:.2f},".format(k=jj, cB=best_path_cost[0][jj]),
+    print("STAT RUN {k}: Best: {cB:.2f},".format(k=jj, cB=best_path_cost[0][jj]), end=' ')
     for nn in range(nmethods):
-        print "{n}:{cB:.2f},".format(n=labels[nn], cB=np.mean(true_path_cost[jj,nn,:])),
-    print "Total  {t:.2f}s".format(t=time.time()-t0)
+        print("{n}:{cB:.2f},".format(n=labels[nn], cB=np.mean(true_path_cost[jj,nn,:])), end=' ')
+    print("Total  {t:.2f}s".format(t=time.time()-t0))
     jj += 1
 
 fh = open(DATA_DIR+nowstr+".p", "wb" )

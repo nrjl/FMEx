@@ -1,5 +1,5 @@
-import urllib2
-import StringIO
+import urllib.request, urllib.error, urllib.parse
+import io
 import csv
 import numpy as np
 import scipy.interpolate
@@ -21,7 +21,7 @@ def block_reduce(mat, degree):
 
 try:
     with open(topo_file, 'rb') as fp:
-        print "Loading pre-saved data file."
+        print("Loading pre-saved data file.")
         TOPO = pickle.load(fp)
         grid_x = TOPO['lons']
         grid_y = TOPO['lats']
@@ -32,7 +32,7 @@ try:
         maxlat = grid_y[0,-1]
 
 except IOError:
-    print "Topography file {0} not found, creating new...".format(topo_file)
+    print("Topography file {0} not found, creating new...".format(topo_file))
     # Definine the domain of interest
     minlat = 54.0#29.0 #
     maxlat = 65.0#45.0 #
@@ -40,10 +40,10 @@ except IOError:
     maxlon = -4.0#38.0 #
         
     # Read data from: http://coastwatch.pfeg.noaa.gov/erddap/griddap/usgsCeSrtm30v6.html
-    response = urllib2.urlopen('http://coastwatch.pfeg.noaa.gov/erddap/griddap/usgsCeSrtm30v6.csv?topo[(' \
+    response = urllib.request.urlopen('http://coastwatch.pfeg.noaa.gov/erddap/griddap/usgsCeSrtm30v6.csv?topo[(' \
                                 +str(maxlat)+'):1:('+str(minlat)+')][('+str(minlon)+'):1:('+str(maxlon)+')]')
     
-    data = StringIO.StringIO(response.read())
+    data = io.StringIO(response.read())
     
     r = csv.DictReader(data,dialect=csv.Sniffer().sniff(data.read(1000)))
     data.seek(0)
@@ -60,7 +60,7 @@ except IOError:
             lon.append(float(row['longitude']))
             topo.append(float(row['topo']))
         except:
-            print 'Row '+str(row)+' is a bad...'
+            print('Row '+str(row)+' is a bad...')
     
     # Convert 'lists' into 'numpy arrays'
     lat  = np.array(lat,  dtype='float')

@@ -45,7 +45,7 @@ DATA_DIR = '../data/'
 VID_DIR = '../vid/'
 FIG_DIR = '../fig/'
 nowstr = time.strftime("%Y_%m_%d-%H_%M")
-print "nowstr: {0}".format(nowstr)
+print("nowstr: {0}".format(nowstr))
 
 def block_reduce(mat, degree):
     nx,ny = mat.shape
@@ -161,10 +161,10 @@ try:
         grid_z = pickle.load(fp)
 
 except IOError:
-    print "Topography grid file {0} not found, creating {1}...".format(topo_file, grid_file)
+    print("Topography grid file {0} not found, creating {1}...".format(topo_file, grid_file))
     try:         
         with open(DATA_DIR+topo_file, 'rb') as fp:
-            print "Loading pre-saved data file {0}.".format(topo_file)
+            print("Loading pre-saved data file {0}.".format(topo_file))
             TOPO = pickle.load(fp)
         grid_x = TOPO['lons']
         grid_y = TOPO['lats']
@@ -180,7 +180,7 @@ except IOError:
             pickle.dump(grid_z, fp2)
                 
     except IOError:
-        print "Topography file {0} not found, create using plot_world_topo".format(topo_file)
+        print("Topography file {0} not found, create using plot_world_topo".format(topo_file))
         raise 
 
 minlon = grid_x[0,0]
@@ -241,7 +241,7 @@ GP_model.optimize()
 GP_l = GP_model.rbf.lengthscale[0]
 GP_sv = GP_model.rbf.variance[0]
 GP_sn = GP_model.Gaussian_noise.variance[0]
-print "GP hypers: l={0:0.2f}, s_f={1:0.2f}, s_n={2:0.2f}".format(GP_l, np.sqrt(GP_sv), np.sqrt(GP_sn)) 
+print("GP hypers: l={0:0.2f}, s_f={1:0.2f}, s_n={2:0.2f}".format(GP_l, np.sqrt(GP_sv), np.sqrt(GP_sn))) 
 
 GP_model.plot()
 
@@ -316,14 +316,14 @@ for ii in range(NUM_SAMPLES):
         fig_t.savefig(FIG_DIR+topo_file+'{0}S{1}.pdf'.format(nowstr,ii+2), bbox_inches='tight')
         for item in tf:
             item.remove()
-    print "Sample {0} selected, t={1}s, costs={2}".format(ii, time.time()-ts,current_true_costs)
+    print("Sample {0} selected, t={1}s, costs={2}".format(ii, time.time()-ts,current_true_costs))
 
 
 for exframe in range(5):
     sampling_frames.append(sampling_frames[-1])
 ani_sampling = animation.ArtistAnimation(fig_s, sampling_frames, interval=100, repeat_delay=0)
 ani_sampling.save('{0}{1}{2}S{3}.ogg'.format(VID_DIR, topo_file, nowstr,ii), writer = 'avconv', fps=2, bitrate=8000, codec='libtheora')   
-print "Total  {t:.2f}s".format(t=time.time()-t0)
+print("Total  {t:.2f}s".format(t=time.time()-t0))
 
 
 plt.show()

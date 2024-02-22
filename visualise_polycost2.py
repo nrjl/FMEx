@@ -56,7 +56,7 @@ def sample_value(fm, pc, x, y):
     std = math.sqrt(fm.GP_cost_graph.var_fun(x,y))
     ccu = fm.cost_update_new(pc.set_update(x, y, std))
     ccd = fm.cost_update_new(pc.set_update(x, y, -std))
-    print "At ({0:2n},{1:2n}), std={2:4.2f}, c_up = {3:4.2f}, c_down = {4:4.2f}, c = {5:4.2f}".format(x,y,std,ccu,ccd,ccu+ccd)
+    print("At ({0:2n},{1:2n}), std={2:4.2f}, c_up = {3:4.2f}, c_down = {4:4.2f}, c = {5:4.2f}".format(x,y,std,ccu,ccd,ccu+ccd))
     return ccu+ccd
 
 def draw_circle(ax,c,r):
@@ -128,9 +128,9 @@ a0[3].plot(FMEx.X[:,0], FMEx.X[:,1], 'rx')
 a0[3].plot(newX[0], newX[1], 'ko', fillstyle='none')
 
 for aa in a0:
-    aa.set_xticks(range(0,gridsize[0]+1,10))
+    aa.set_xticks(list(range(0,gridsize[0]+1,10)))
 
-print "Poly update took {0}s, full GP update took {1}s".format(tup,tgp)
+print("Poly update took {0}s, full GP update took {1}s".format(tup,tgp))
 
 if SEP_PLOTS and SAVE_PLOTS:
     for i in range(len(f0)):

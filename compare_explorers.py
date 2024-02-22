@@ -65,7 +65,7 @@ true_g.obstacles = [] #fm_plottools.generate_obstacles(gridsize[0], gridsize[1],
 start_node = (3,5)
 end_node = (97, 97)
 
-print 'Creating true field fast marcher... ',
+print('Creating true field fast marcher... ', end=' ')
 # Create search for true field
 tFM = fast_marcher.FullBiFastMarcher(true_g)
 tFM.set_start(start_node)
@@ -73,7 +73,7 @@ tFM.set_goal(end_node)
 tFM.search()
 tFM.pull_path()
 best_path_cost = calc_true_path_cost(explore_cost_function, tFM.path)
-print 'done. Best path cost = {0}'.format(best_path_cost)
+print('done. Best path cost = {0}'.format(best_path_cost))
 
 fig1, ax1 = plt.subplots(2, 2, sharex=True, sharey=True)
 ax1[0][0].set_title("True cost field")
@@ -83,7 +83,7 @@ ax1[1][1].set_title("Estimated cost - FM sampling")
 fm_plottools.draw_grid(ax1[0][0], true_g, tFM.path, 19)
 #fm_plottools.draw_fbfmcost(ax1[0][0], true_g, tFM.path_cost, tFM.path, 1000, 1400)
 
-print 'Creating fast marching explorers... ',
+print('Creating fast marching explorers... ', end=' ')
 # Create initial GP
 mean_value = 3;
 
@@ -97,12 +97,12 @@ for ii in range(Xshape[0]):
 random_sampling_explorer = bfm_explorer.fast_marching_explorer(gridsize, start_node, end_node, X, Y, mean_value, true_g.obstacles)
 maxvar_sampling_explorer = bfm_explorer.fast_marching_explorer(gridsize, start_node, end_node, X, Y, mean_value, true_g.obstacles)
 fm_sampling_explorer = bfm_explorer.fast_marching_explorer(gridsize, start_node, end_node, X, Y, mean_value, true_g.obstacles)
-print 'done.'
+print('done.')
 
 ## UPDATES!
 #cost_update = square_cost_modifier(g, 60, 80, 10, 30, -3)
-test_gridx = range(2, true_g.width, 12); lx = len(test_gridx)
-test_gridy = range(2, true_g.height, 12); ly = len(test_gridy)
+test_gridx = list(range(2, true_g.width, 12)); lx = len(test_gridx)
+test_gridy = list(range(2, true_g.height, 12)); ly = len(test_gridy)
 delta_costs = [-1, 1]; ld = len(delta_costs)
 
 NUM_TESTS = lx*ly*ld
@@ -161,16 +161,16 @@ for ii in range(NUM_SAMPLES):
     est_path_cost[2,ii],est_path_var[2,ii] = calc_est_path_cost(fm_sampling_explorer.GP_model, mean_value, fm_sampling_explorer.fbFM.path)
     
     video_frames.append(plot_updates(ax1, [random_sampling_explorer, maxvar_sampling_explorer, fm_sampling_explorer]))            
-    print "Iteration {0} path costs - Random: {1}, MaxVar: {2}, FM: {3}".format(ii, true_path_cost[0,ii], true_path_cost[1,ii], true_path_cost[2,ii])
+    print("Iteration {0} path costs - Random: {1}, MaxVar: {2}, FM: {3}".format(ii, true_path_cost[0,ii], true_path_cost[1,ii], true_path_cost[2,ii]))
     search_time[ii] = time.time()-t0
     
 ani1 = animation.ArtistAnimation(fig1, video_frames, interval=500, repeat_delay=0)
 
 fig_costs, ax_costs = plt.subplots()
 ax_costs.plot([1, NUM_SAMPLES], [1, 1], 'k--', label='Best path cost')
-ax_costs.plot(range(1, NUM_SAMPLES+1), [x/best_path_cost for x in true_path_cost[0,:]], 'b-', label='Random sampling')
-ax_costs.plot(range(1, NUM_SAMPLES+1), [x/best_path_cost for x in true_path_cost[1,:]], 'r-', label='Max variance sampling')
-ax_costs.plot(range(1, NUM_SAMPLES+1), [x/best_path_cost for x in true_path_cost[2,:]], 'g-', label='FMCost sampling')
+ax_costs.plot(list(range(1, NUM_SAMPLES+1)), [x/best_path_cost for x in true_path_cost[0,:]], 'b-', label='Random sampling')
+ax_costs.plot(list(range(1, NUM_SAMPLES+1)), [x/best_path_cost for x in true_path_cost[1,:]], 'r-', label='Max variance sampling')
+ax_costs.plot(list(range(1, NUM_SAMPLES+1)), [x/best_path_cost for x in true_path_cost[2,:]], 'g-', label='FMCost sampling')
 ax_costs.legend(loc=0)
 ax_costs.set_xlabel('Samples')
 ax_costs.set_ylabel('Path cost (normalized against best path cost)')

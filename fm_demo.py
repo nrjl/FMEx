@@ -52,7 +52,7 @@ fm_object.search()
 t_searchFM = time.time()-t0
 fm_object.pull_path()
 t_pathFM = time.time()-t0-t_searchFM
-print "Search time: {0}s, Pulling path time: {1}s".format(t_searchFM, t_pathFM)
+print("Search time: {0}s, Pulling path time: {1}s".format(t_searchFM, t_pathFM))
 
 # Plot animation because cool.
 aniFM = animation.ArtistAnimation(h_fig, fm_object.make_video(), interval=10, repeat_delay=2000)

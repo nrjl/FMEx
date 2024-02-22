@@ -95,8 +95,8 @@ class poly_cost:
         cx = int(round(cx))
         cy = int(round(cy))
         plist = [(x+cx, y+cy) for (x,y) in self.cost_dict]
-        plist = filter(self.in_bounds, plist)
-        plist = filter(self.passable, plist)
+        plist = list(filter(self.in_bounds, plist))
+        plist = list(filter(self.passable, plist))
         out = {(x,y):delta*self.cost_dict[(x-cx,y-cy)] for (x,y) in plist}
         return out
 
@@ -141,8 +141,8 @@ class CostmapGrid:
     def neighbours(self, id):
         (x, y) = id
         results = [(x+self.delta[0], y), (x, y-self.delta[1]), (x-self.delta[0], y), (x, y+self.delta[1])]
-        results = filter(self.in_bounds, results)
-        results = filter(self.passable, results)
+        results = list(filter(self.in_bounds, results))
+        results = list(filter(self.passable, results))
         results = [((a, b), self.node_cost((a, b))) for a,b in results]
         return results
       
@@ -269,6 +269,6 @@ class CostmapGridFixedObs(CostmapGrid):
         for x in range(self.left, self.right, self.delta[0]):
             for y in range(self.bottom, self.top, self.delta[1]):
                 results = [(x+self.delta[0], y), (x, y-self.delta[1]), (x-+self.delta[0], y), (x, y+self.delta[1])]
-                results = filter(self.in_bounds, results)
-                results = filter(self.passable, results)
+                results = list(filter(self.in_bounds, results))
+                results = list(filter(self.passable, results))
                 self.fixed_neighbours.update({(x,y):results})

@@ -25,7 +25,7 @@ def make_boxplot(data, lims, ylabel, ax = None, title=None, selector=None):
         ff = plt.figure()
         ax = ff.add_subplot(111)
     if selector == None:
-        selector = range(data.shape[1])
+        selector = list(range(data.shape[1]))
     data = data[:,selector]
     dlabels = [METHOD_NAMES[i] for i in selector]
     ax.boxplot(data)
@@ -38,7 +38,7 @@ def make_boxplot(data, lims, ylabel, ax = None, title=None, selector=None):
         ax.set_title(title)
     return ax
 
-print "Generating map..."
+print("Generating map...")
 gridsize = [100, 100]
 
 g = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1], fm_graphtools.blob_cost_function)
@@ -50,7 +50,7 @@ while end_node in g.obstacles:
     end_node = (end_node[0]-1, end_node[1])
     
 # FM search
-print "Performing FM search..."
+print("Performing FM search...")
 FM = fast_marcher.FastMarcher(g)
 FM.set_start(start_node)
 FM.set_goal(end_node)
@@ -61,13 +61,13 @@ t_searchFM = time.time()-t0
 
 FM.find_corridor()
 t_corridorFM = time.time()-t0-t_searchFM
-print "Done. Search took {0}s, extracting corridor took {1}s".format(t_searchFM, t_corridorFM)
+print("Done. Search took {0}s, extracting corridor took {1}s".format(t_searchFM, t_corridorFM))
 
 FM.pull_path()
 f0,a0 = fm_plottools.init_fig()
 fm_plottools.draw_grid(a0,g,path=FM.path)
 
-print "Performing biFM search..."
+print("Performing biFM search...")
 bFM = fast_marcher.BiFastMarcher(g)
 bFM.set_start(start_node)
 bFM.set_goal(end_node)
@@ -78,9 +78,9 @@ t_searchbFM = time.time()-t0
 
 bFM.find_corridor()
 t_corridorbFM = time.time()-t0-t_searchbFM
-print "Done. Search took {0}s, extracting corridor took {1}s".format(t_searchbFM, t_corridorbFM)
+print("Done. Search took {0}s, extracting corridor took {1}s".format(t_searchbFM, t_corridorbFM))
 
-print "Performing full BiFM search..."
+print("Performing full BiFM search...")
 fbFM = fast_marcher.FullBiFastMarcher(g)
 fbFM.set_start(start_node)
 fbFM.set_goal(end_node)
@@ -88,7 +88,7 @@ fbFM.set_goal(end_node)
 t0 = time.time()
 fbFM.search()
 t_searchfbFM = time.time()-t0
-print "Done. Search took {0}s".format(t_searchfbFM)
+print("Done. Search took {0}s".format(t_searchfbFM))
 
 
 
@@ -110,8 +110,8 @@ for ii in range(NUM_TESTS):
     #cost_update = fm_graphtools.square_cost_modifier(g, xlo, xlo+dx, ylo, ylo+dy, modcost)
     #print "Square map update {0}, ({1},{2}) to ({3},{4}), delta = {5}".format(ii, xlo, ylo, xlo+dx, ylo+dy, modcost)
     cost_update = poly_cost.set_update(xlo,ylo,modcost)
-    print "Poly map update {0}, ({1},{2}), delta = {3}".format(ii, xlo, ylo, modcost)
-    print "Method | Time (s) | SNodes | DNodes |   Cost  |"
+    print("Poly map update {0}, ({1},{2}), delta = {3}".format(ii, xlo, ylo, modcost))
+    print("Method | Time (s) | SNodes | DNodes |   Cost  |")
     
     ug = g.copy()
     ug.add_delta_costs(cost_update)
@@ -123,7 +123,7 @@ for ii in range(NUM_TESTS):
     uFM.search()
     search_time[0,ii] = time.time()-t0
     search_nodes[0,ii] = uFM.search_nodes
-    print "  FM   |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[0,ii], search_nodes[0,ii],0,uFM.cost_to_come[uFM.end_node])
+    print("  FM   |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[0,ii], search_nodes[0,ii],0,uFM.cost_to_come[uFM.end_node]))
 
     # E* Update test
     fast_marcher.FM_reset(eFM, FM, g)
@@ -133,7 +133,7 @@ for ii in range(NUM_TESTS):
     search_time[1,ii] = time.time()-t0
     search_nodes[1,ii] = eFM.search_nodes
     downwind_nodes[1,ii] = eFM.downwind_nodes
-    print " E*FM  |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[1,ii], search_nodes[1,ii],downwind_nodes[1,ii],eFM.cost_to_come[eFM.end_node])
+    print(" E*FM  |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[1,ii], search_nodes[1,ii],downwind_nodes[1,ii],eFM.cost_to_come[eFM.end_node]))
 
     # Update bFM
     fast_marcher.bFM_reset(ubFM, bFM, g)
@@ -144,7 +144,7 @@ for ii in range(NUM_TESTS):
     search_time[2,ii] = time.time()-t0
     search_nodes[2,ii] = ubFM.search_nodes
     downwind_nodes[2,ii] = ubFM.downwind_nodes
-    print " BiFM  |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[2,ii], search_nodes[2,ii],downwind_nodes[2,ii],ubFM.best_cost)
+    print(" BiFM  |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[2,ii], search_nodes[2,ii],downwind_nodes[2,ii],ubFM.best_cost))
     
     # Update fbFM
     t0 = time.time()
@@ -153,7 +153,7 @@ for ii in range(NUM_TESTS):
     search_time[3,ii] = time.time()-t0
     search_nodes[3,ii] = fbFM.search_nodes
     downwind_nodes[3,ii] = fbFM.downwind_nodes
-    print " FBFM  |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[3,ii], search_nodes[3,ii],downwind_nodes[3,ii],fbFM.updated_min_path_cost)
+    print(" FBFM  |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[3,ii], search_nodes[3,ii],downwind_nodes[3,ii],fbFM.updated_min_path_cost))
 
     # Update fbFM2
     t0 = time.time()
@@ -162,7 +162,7 @@ for ii in range(NUM_TESTS):
     search_time[4,ii] = time.time()-t0
     search_nodes[4,ii] = fbFM.search_nodes
     downwind_nodes[4,ii] = fbFM.downwind_nodes
-    print " FBFM3 |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[4,ii], search_nodes[4,ii],downwind_nodes[4,ii],fbFM.updated_min_path_cost)
+    print(" FBFM3 |{0:10.4f}|{1:8.0f}|{2:8.0f}|{3:9.4f}|".format(search_time[4,ii], search_nodes[4,ii],downwind_nodes[4,ii],fbFM.updated_min_path_cost))
     
 
 trial = [search_time, search_nodes, downwind_nodes]

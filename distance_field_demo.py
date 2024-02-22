@@ -40,7 +40,7 @@ fm_object.set_plots([], h_ax)
 t0 = time.time()
 fm_object.search()
 t_searchFM = time.time()-t0
-print "Search time: {0}s".format(t_searchFM)
+print("Search time: {0}s".format(t_searchFM))
 
 # Plot animation because cool.
 aniFM = animation.ArtistAnimation(h_fig, fm_object.make_video(), interval=10, repeat_delay=2000)

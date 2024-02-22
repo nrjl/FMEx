@@ -1,5 +1,5 @@
-import fm_graphtools
-import fm_plottools
+from . import fm_graphtools
+from . import fm_plottools
 import math
 import numpy as np
 import copy
@@ -289,7 +289,7 @@ class FastMarcher:
                 change_corridor = True;
                 break   
         if (not force_update) and (not change_corridor):
-            print "Only cost increases outside best corridor, returning"
+            print("Only cost increases outside best corridor, returning")
             return
         
         self.graph.add_delta_costs(new_cost)
@@ -545,7 +545,7 @@ class BiFastMarcher(FastMarcher):
         
         if self.image_frames != 0:
             self.axes.clear()
-            fm_plottools.draw_corridor(self.axes, self.graph, self.cost_to_come, self.cost_to_come.keys(), interface-kill_list)
+            fm_plottools.draw_corridor(self.axes, self.graph, self.cost_to_come, list(self.cost_to_come.keys()), interface-kill_list)
             self.axes.figure.savefig('/home/nick/Dropbox/work/FastMarching/fig/map_update.pdf', bbox_inches='tight')
         
         self.continue_bFM_search()
@@ -861,7 +861,7 @@ class FullBiFastMarcher:
                 
         if self.image_frames != 0:
             self.image_frames.append(fm_plottools.draw_costmap(self.axes, self.graph, A))
-        print "biFM ReSearch: nodes popped: {0}".format(self.search_nodes)
+        print("biFM ReSearch: nodes popped: {0}".format(self.search_nodes))
 
         return C_b
 
@@ -892,8 +892,8 @@ class FullBiFastMarcher:
             return
         
         A_prime = copy.copy(self.FastMarcherSG.cost_to_come)
-        if (new_cost.itervalues().next() > 0):
-            M = self.kill_downwind(new_cost.keys(), A_prime, min_ctg)
+        if (next(iter(new_cost.values())) > 0):
+            M = self.kill_downwind(list(new_cost.keys()), A_prime, min_ctg)
         else:
             M = set()
             for x_d in new_cost:
@@ -1010,8 +1010,8 @@ class FullBiFastMarcher:
         A_prime = copy.copy(A_dir.cost_to_come)
         
         # If cost goes up, kill downwind, if it goes down, just add parents
-        if (new_cost.itervalues().next() > 0):
-            M = self.full_kill_downwind(new_cost.keys(), A_prime, A_dir.child_list)
+        if (next(iter(new_cost.values())) > 0):
+            M = self.full_kill_downwind(list(new_cost.keys()), A_prime, A_dir.child_list)
             # If the goal node is still valid then no shorter path exists
             if A_dir.end_node in A_prime:
                 self.updated_min_path_cost = self.min_path_cost
@@ -1039,7 +1039,7 @@ class FullBiFastMarcher:
             x_prime = A_dir.start_node
                     
         if A_dir.start_node in new_cost:
-            print "Start node in cost change, this should really not happen..."
+            print("Start node in cost change, this should really not happen...")
 
         for x_M in M:
             Q.push(x_M, A_dir.cost_to_come[x_M])
@@ -1053,7 +1053,7 @@ class FullBiFastMarcher:
 
         if A_min > C_b:
             self.updated_min_path_cost = C_prime
-            print "The weird return happened!"
+            print("The weird return happened!")
             return
             
         C_prime, x_temp = self.ReSearch3(Q, A_prime, B_dir, C_b, B_min, loc)

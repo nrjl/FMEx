@@ -75,7 +75,7 @@ def draw_grid(axes, graph, path=None, max_cost=0, min_cost=None, cost_fun=None, 
     mat_out =  [axes.imshow(graph_mat.transpose(), origin='lower', extent=extent,
         interpolation='none', cmap=cmap, vmin=min_cost, vmax=max_cost, *args, **kwargs)]
     if not path == None:
-        x, y = zip(*path)
+        x, y = list(zip(*path))
         mat_out.append(axes.plot(x, y, 'w-', linewidth=2.0 )[0])
         mat_out.extend(plot_end_points(axes,x,y))
     axes.tick_params(labelbottom='on',labeltop='off')
@@ -98,7 +98,7 @@ def draw_costmap(axes, graph, cost_to_come, path=None, start_nodes=None):
     if start_nodes != None:
         mat_out.append(axes.plot(start_nodes[0], start_nodes[1],'r^', markersize=8 )[0])
     if path is not None and (len(path) > 0):
-        x, y = zip(*path)
+        x, y = list(zip(*path))
         mat_out.append(axes.plot(x, y, 'w-', linewidth=2.0 )[0])
     axes.tick_params(labelbottom='on',labeltop='off')
     axes.set_xlim(extent[0],extent[1]); axes.set_ylim(extent[2],extent[3])
@@ -126,7 +126,7 @@ def draw_corridor(axes, graph, cost_to_come, corridor, interface=[], path=[]):
         norm = matplotlib.colors.Normalize(vmin=0, vmax=max_cost, clip=False))]
         
     if len(path) > 0:
-        x, y = zip(*path)
+        x, y = list(zip(*path))
         mat_out.append(axes.plot(x, y, 'w-', linewidth=2.0 )[0])
     axes.tick_params(labelbottom='on',labeltop='off')
     axes.set_xlim(extent[0],extent[1]); axes.set_ylim(extent[2],extent[3])
@@ -149,7 +149,7 @@ def draw_fbfmcost(axes, grid, path_cost, path=[], min_cost = 1e7, max_cost = 0):
     mat_out =  [axes.imshow(grid_mat.transpose(), origin='lower', extent=[grid.left,grid.right,grid.bottom,grid.top],
         interpolation='none', cmap=cmap, vmax=max_cost, vmin=min_cost)]
     if len(path) > 0:
-        x, y = zip(*path)
+        x, y = list(zip(*path))
         mat_out.append(axes.plot(x, y, 'w-', linewidth=2.0 )[0])
     axes.tick_params(labelbottom='on',labeltop='off')
     #axes.figure.colorbar(mat_out[0])

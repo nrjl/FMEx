@@ -26,7 +26,7 @@ def init_fig():
     axn.set_ylabel('y')    
     return fign, axn
 
-print "Generating map..."
+print("Generating map...")
 gridsize = [130, 100]
 
 random.seed(2)
@@ -37,7 +37,7 @@ start_node = (1,1)
 end_node = (127,97) #'''
 
 # FM search
-print "Performing FM search..."
+print("Performing FM search...")
 figFM, axFM = init_fig()
 FM = fast_marcher.FastMarcher(g)
 FM.set_start(start_node)
@@ -53,7 +53,7 @@ t_pathFM = time.time()-t0-t_searchFM
 
 FM.find_corridor()
 t_corridorFM = time.time()-t0-t_searchFM-t_pathFM
-print "Done. Search took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchFM, t_pathFM, t_corridorFM)
+print("Done. Search took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchFM, t_pathFM, t_corridorFM))
 
 ## biFM search
 bFM = fast_marcher.BiFastMarcher(g)
@@ -61,7 +61,7 @@ bFM.set_start(start_node)
 bFM.set_goal(end_node)
 bFM.set_plots([], axFM)
 
-print "Performing biFM search..."
+print("Performing biFM search...")
 t0 = time.time()
 bFM.search()
 t_searchbFM = time.time()-t0
@@ -72,7 +72,7 @@ t_pathbFM = time.time()-t0-t_searchbFM
 bFM.find_corridor()
 t_corridorbFM = time.time()-t0-t_searchbFM-t_pathbFM
 
-print "Done. Search took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchbFM, t_pathbFM, t_corridorbFM)
+print("Done. Search took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchbFM, t_pathbFM, t_corridorbFM))
 
 
 # FM search on updated map
@@ -90,7 +90,7 @@ elif UPDATE == 'D':
 else:
     square_cost = {}
 
-print "Performing update (FM from scratch) ..."
+print("Performing update (FM from scratch) ...")
 ug = g.copy()
 ug.add_delta_costs(square_cost)
 uFM = fast_marcher.FastMarcher(ug)
@@ -107,14 +107,14 @@ t_pathuFM = time.time()-t0-t_searchuFM
 
 uFM.find_corridor()
 t_corridoruFM = time.time()-t0-t_searchuFM-t_pathuFM
-print "Done. Search took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchuFM, t_pathuFM, t_corridoruFM)
+print("Done. Search took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchuFM, t_pathuFM, t_corridoruFM))
 
 # E* Update test
 eFM = copy.copy(FM)
 eFM.set_graph(g.copy())
 eFM.set_plots([], axFM)
 
-print "Performing map update (E*) ..."
+print("Performing map update (E*) ...")
 t0 = time.time()
 eFM.update(square_cost, True)
 t_searchFMu = time.time()-t0
@@ -124,7 +124,7 @@ t_pathFMu = time.time()-t0-t_searchFMu
 
 eFM.find_corridor()
 t_corridorFMu = time.time()-t0-t_searchFMu-t_pathFMu
-print "Done. Update took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchFMu, t_pathFMu, t_corridorFMu)
+print("Done. Update took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchFMu, t_pathFMu, t_corridorFMu))
 
 
 # Update bFM
@@ -132,7 +132,7 @@ ubFM = copy.copy(bFM)
 ubFM.set_graph(g.copy())
 ubFM.set_plots([], axFM)
 
-print "Performing map update (bi-FM) ..."
+print("Performing map update (bi-FM) ...")
 t0 = time.time()
 ubFM.update(square_cost)
 t_searchFMub = time.time()-t0
@@ -142,5 +142,5 @@ t_pathFMub = time.time()-t0-t_searchFMub
 
 ubFM.find_corridor()
 t_corridorFMub = time.time()-t0-t_searchFMub-t_pathFMub
-print "Done. Update took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchFMub, t_pathFMub, t_corridorFMub)
+print("Done. Update took {0}s, pulling path took {1}s, extracting corridor took {2}s".format(t_searchFMub, t_pathFMub, t_corridorFMub))
 

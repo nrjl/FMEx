@@ -157,8 +157,8 @@ if PLOT_UPDATES:
 
 ## UPDATES!
 #cost_update = square_cost_modifier(g, 60, 80, 10, 30, -3)
-test_gridx = range(2, 100, 12); lx = len(test_gridx)
-test_gridy = range(2, 100, 12); ly = len(test_gridy)
+test_gridx = list(range(2, 100, 12)); lx = len(test_gridx)
+test_gridy = list(range(2, 100, 12)); ly = len(test_gridy)
 delta_costs = [-1, 1]; ld = len(delta_costs)
 
 NUM_TESTS = lx*ly*ld
@@ -190,7 +190,7 @@ for ii in range(NUM_SAMPLES):
                     best_cost = current_value
                     bestX = [tx,ty]
     
-    print "Point selected: ({0}, {1}). Estimation time = {2} sec.".format(bestX[0], bestX[1], time.time()-t0)
+    print("Point selected: ({0}, {1}). Estimation time = {2} sec.".format(bestX[0], bestX[1], time.time()-t0))
     search_time[ii] = time.time()-t0
     
     # update GP with best observation
@@ -249,8 +249,8 @@ if PLOT_UPDATES:
 best_cost = calc_true_path_cost(explore_cost_function, tFM.path)
 fig_costs, ax_costs = fm_plottools.init_fig()
 l0,=ax_costs.plot([1, NUM_SAMPLES], [1, 1], 'k--', label='Best path cost')
-l1,=ax_costs.plot(range(1, NUM_SAMPLES+1), [x/best_cost for x in true_path_cost], 'b-', label='True path cost, biFM')
-l2,=ax_costs.plot(range(1, NUM_SAMPLES+1), [x/best_cost for x in est_path_cost], 'r-', label='Estimated path cost, biFM')
+l1,=ax_costs.plot(list(range(1, NUM_SAMPLES+1)), [x/best_cost for x in true_path_cost], 'b-', label='True path cost, biFM')
+l2,=ax_costs.plot(list(range(1, NUM_SAMPLES+1)), [x/best_cost for x in est_path_cost], 'r-', label='Estimated path cost, biFM')
 #l3,=ax_costs.plot(range(1, NUM_SAMPLES+1), est_path_cost+np.sqrt(est_path_var), 'r--', label='Estimated path uncertainty ($1-\sigma$)')
 #ax_costs.plot(range(1, NUM_SAMPLES+1), est_path_cost-np.sqrt(est_path_var), 'r--')
 ax_costs.set_aspect('auto', 'datalim')

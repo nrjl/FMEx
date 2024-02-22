@@ -128,12 +128,12 @@ obs_only = fm_graphtools.CostmapGridFixedObs(true_g.width, true_g.height, obstac
 # Plot with only obstacles and end points
 fig_s, ax_s = create_cost_plot(true_g, title='Iceland-UK', limits=extent)
 fm_plottools.draw_grid(ax_s, obs_only, min_cost = 0.8, max_cost=2.0)
-fm_plottools.plot_end_points(ax_s, *zip(*tFM.path))
+fm_plottools.plot_end_points(ax_s, *list(zip(*tFM.path)))
 
 # Plot with true cost map, no path
 fig_t, ax_t = create_cost_plot(true_g, title='Iceland-UK SMRT30 Bathymetry', limits=extent)
 tempframe, barlims = fm_plottools.draw_grid(ax_t, true_g)
-fm_plottools.plot_end_points(ax_t, *zip(*tFM.path))
+fm_plottools.plot_end_points(ax_t, *list(zip(*tFM.path)))
 
 # Plot true cost map with path
 fig_p, ax_p = create_cost_plot(true_g, title='Iceland-UK SMRT30 Bathymetry', limits=extent)

@@ -54,7 +54,7 @@ def sample_value(fm, pc, x, y):
     std = math.sqrt(fm.GP_cost_graph.var_fun(x,y))
     ccu = fm.cost_update_new(pc.set_update(x, y, std))
     ccd = fm.cost_update_new(pc.set_update(x, y, -std))
-    print "At ({0:2n},{1:2n}), std={2:4.2f}, c_up = {3:4.2f}, c_down = {4:4.2f}, c = {5:4.2f}".format(x,y,std,ccu,ccd,ccu+ccd)
+    print("At ({0:2n},{1:2n}), std={2:4.2f}, c_up = {3:4.2f}, c_down = {4:4.2f}, c = {5:4.2f}".format(x,y,std,ccu,ccd,ccu+ccd))
     return ccu+ccd
 
 true_g = fm_graphtools.CostmapGridFixedObs(gridsize[0], gridsize[1], cost_fun=explore_cost_function, obstacles=[])
@@ -120,7 +120,7 @@ fm_plottools.draw_grid(a0[3], FMEx.GP_cost_graph,path=FMEx.fbFM.path, min_cost=b
 a0[3].plot(FMEx.X[:,0], FMEx.X[:,1], 'rx')
 a0[3].plot(newX[0], newX[1], 'ko', fillstyle='none')
 
-print "Poly update took {0}s, full GP update took {1}s".format(tup,tgp)
+print("Poly update took {0}s, full GP update took {1}s".format(tup,tgp))
 
 if SEP_PLOTS and SAVE_PLOTS:
     for i in range(len(f0)):
@@ -131,9 +131,9 @@ if SEP_PLOTS and SAVE_PLOTS:
 # Test sample points
 X2 = np.random.choice(true_g.width, (100, 2))
 X2 = np.vstack([X2, [2,2],[98,98]])
-print "Current best path cost: {0}".format(FMEx.fbFM.min_path_cost)
+print("Current best path cost: {0}".format(FMEx.fbFM.min_path_cost))
 sv = [sample_value(FMEx, poly_cost_obj, x[0],x[1]) for x in X2]
-print "Min at {0}, c={1:0.3f}".format(X2[np.argmin(sv)], min(sv))
+print("Min at {0}, c={1:0.3f}".format(X2[np.argmin(sv)], min(sv)))
 f1 = plt.figure(1); f1.clf()
 a1 = f1.add_subplot(111, projection='3d')
 a1.scatter(X2[:,0],X2[:,1],sv,c=sv)

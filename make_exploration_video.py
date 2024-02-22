@@ -140,8 +140,8 @@ for ii in range(NUM_SAMPLES):
     
     rand_samples = []
     while len(rand_samples) < 50:
-        tx = random.choice(range(gridsize[0]))
-        ty = random.choice(range(gridsize[1]))
+        tx = random.choice(list(range(gridsize[0])))
+        ty = random.choice(list(range(gridsize[1])))
         if ((tx,ty) not in true_g.obstacles):
             rand_samples.append((tx,ty))
         
@@ -151,7 +151,7 @@ for ii in range(NUM_SAMPLES):
     imin = np.argmin(sv)
     fm_best_cost = sv[imin]
     fm_bestX = rand_samples[imin]        
-    print "Sample selection time: {0:.4f}".format(time.time()-ts)                                        
+    print("Sample selection time: {0:.4f}".format(time.time()-ts))                                        
 
     fm_sampling_explorer.add_observation([fm_bestX], [[sample_cost_fun(explore_cost_function, fm_bestX, cblobs)]])
     true_path_cost[ii] = calc_true_path_cost(explore_cost_function, fm_sampling_explorer.fbFM.path, cblobs)

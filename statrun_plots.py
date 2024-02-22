@@ -60,7 +60,7 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None,
         ax2.plot(np.arange(0,NUM_SAMPLES*nmethods,nmethods)+i+1, [np.median(td[~np.isnan(td)]) for td in tempdata], cols[i], label=labels[i])
     ax2.set_xlim(0, nmethods*NUM_SAMPLES)
     ax2.set_xticks(np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+2)
-    ax2.set_xticklabels(range(1,NUM_SAMPLES+1, sample_bars))
+    ax2.set_xticklabels(list(range(1,NUM_SAMPLES+1, sample_bars)))
     ax2.set_yscale('log')
     ax2.grid(True, which='major', axis='y')
     ax2.legend(loc=0, prop={'size':10})
@@ -109,7 +109,7 @@ def make_plots(best_path_cost, true_path_cost, est_path_cost, labels, cols=None,
             bootstrap=5000)  #, , medianprops={'color':cols[i]}
     ax4.set_xlim(0, nmethods*NUM_SAMPLES)
     ax4.set_xticks(np.arange(0,NUM_SAMPLES*nmethods,sample_bars*nmethods)+2)
-    ax4.set_xticklabels(range(1,NUM_SAMPLES+1, sample_bars))    
+    ax4.set_xticklabels(list(range(1,NUM_SAMPLES+1, sample_bars)))    
     ax4.grid(True, which='major', axis='y')
     ax4.legend(loc=0, prop={'size':10})
     ax4.set_xlabel('Number of samples')

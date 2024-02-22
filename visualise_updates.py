@@ -74,7 +74,7 @@ def fmex_val(x,y,z,model):
     fmval = model.updated_min_path_cost-model.min_path_cost
     model.update_new3(poly_cost.set_update(x,y,-z))
     fmval2 = model.updated_min_path_cost-model.min_path_cost
-    print "{0}: {1}, {2}: {3}, Total: {4}".format(z,fmval,-z,fmval2,fmval+fmval2)
+    print("{0}: {1}, {2}: {3}, Total: {4}".format(z,fmval,-z,fmval2,fmval+fmval2))
     return fmval+fmval2
 
 
